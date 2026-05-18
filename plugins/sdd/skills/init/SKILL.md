@@ -14,7 +14,8 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 ## Runtime互換
 
 - Claude Code: plugin skill と `Agent` tool を使用する。
-- Codex: plugin skill と Codex-native sub-agent を使用する。Claude-only frontmatterや`Agent` tool表記は、同等のCodex sub-agent起動に読み替える。
+- Codex: runtimeがnative sub-agent/delegation機能を提供している場合はそれを使用する。これはプラグインmanifestでpackagingする専用agentではなく、Codex親セッション側の実行機能を使う。
+- Codexでsub-agent機能が使えない場合は、同じ調査観点をメインエージェントが段階的に実施し、`.tmp/sdd-init/` に「sub-agent unavailable」と理由を記録する。独立レビューや並列調査を実施済みと扱ってはならない。
 - どちらのruntimeでも、調査結果・質問・ドラフトの出力先は `.tmp/sdd-init/` に統一する。
 
 ## 前提条件
@@ -127,7 +128,7 @@ SDD プラグインの他コマンド（`create-worktree`, `plan-task`, `consoli
 
 ### Phase 1: プロジェクト調査（並行実行）
 
-2つのリサーチャーサブエージェントを**並行**で起動する。
+2つのリサーチャーサブエージェントを**並行**で起動する。Codexでは `subagent_type` 指定ではなく、同じpromptをnative sub-agent/delegation機能へそのまま渡す。利用できない場合は、同じ順序でメインエージェントが実施する。
 
 #### 1a. コードベース調査（sdd-init-code-researcher）
 

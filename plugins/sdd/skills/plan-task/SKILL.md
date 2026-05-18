@@ -13,3 +13,4 @@ Codex wrapper for `../../commands/plan-task.md`.
 2. Follow the task selection, pre-plan investigation, risk review, and implementation-plan output rules.
 3. Preserve dependency checks against requirements, design, and tasks.
 4. Separate repository implementation from user manual setup or live verification work.
+5. In Codex, translate Claude `EnterPlanMode` instructions into a normal plan response and wait for explicit user approval before editing.

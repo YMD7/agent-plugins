@@ -173,7 +173,7 @@ Specification（仕様）生成では段階的な承認フローを採用しま�
 - requirements.md / design.md / tasks.md は、それぞれ対応するレビュー用ファイルに時系列で追記する
 - 同一ドキュメントのレビューは連番で付与する（Review 01, 02, 03...）
 - 最新レビューには「Status: latest」を付ける
-- 最新レビューには実行経路を示す reviewer marker を `Review NN` block 内に付ける:
+- 全Review blockには実行経路を示す reviewer marker を `Review NN` block 内に付ける。特に `Status: latest` のReview blockでは必須:
   - `<!-- Reviewed by: Codex CLI -->`
   - `<!-- Reviewed by: Codex sub-agents -->`
   - `<!-- Reviewed by: Parent agent emergency fallback; user-approved -->`
@@ -217,6 +217,7 @@ Status: superseded（次のReviewがある場合）/ latest（最新の場合）
 
 ## YYYY-MM-DD {対象} Review 02
 Status: latest
+<!-- Reviewed by: Codex CLI / Codex sub-agents / Parent agent emergency fallback; user-approved -->
 
 ### 対象
 - ファイルパス
@@ -321,7 +322,7 @@ Requirements生成前に、対象Scopeの実装でユーザーの手動作業が
 - **出力**: `spec/specs/B{nn}-S{nn}-{slug}/requirements.md`
 - **手順**:
   1. 「{stage}の生成計画を作成しましょうか？(y/n)」でユーザー承認を得る
-  2. `EnterPlanMode` で生成計画を作成（構成・要点・参照元・手動作業プレフライト結果を提示）
+  2. 計画承認ゲートで生成計画を作成（Claude Code: `EnterPlanMode` / Codex: 通常応答で計画提示。構成・要点・参照元・手動作業プレフライト結果を提示）
   3. ユーザーが計画を承認
   4. 承認された計画に従って requirements.md を生成
   5. `spec-review` workflow（Claude Code: `/sdd:spec-review requirements` / Codex: `spec-review requirements`）で自動レビューを実行
@@ -337,7 +338,7 @@ Requirements生成前に、対象Scopeの実装でユーザーの手動作業が
 - **出力**: `spec/specs/B{nn}-S{nn}-{slug}/design.md`
 - **手順**:
   1. 「{stage}の生成計画を作成しましょうか？(y/n)」でユーザー承認を得る
-  2. `EnterPlanMode` で生成計画を作成（構成・要点・参照元を提示）
+  2. 計画承認ゲートで生成計画を作成（Claude Code: `EnterPlanMode` / Codex: 通常応答で計画提示。構成・要点・参照元を提示）
   3. ユーザーが計画を承認
   4. 承認された計画に従って design.md を生成
   5. `spec-review` workflow（Claude Code: `/sdd:spec-review design` / Codex: `spec-review design`）で自動レビューを実行
@@ -359,7 +360,7 @@ Requirements生成前に、対象Scopeの実装でユーザーの手動作業が
 - **出力**: `spec/specs/B{nn}-S{nn}-{slug}/tasks.md`
 - **手順**:
   1. 「{stage}の生成計画を作成しましょうか？(y/n)」でユーザー承認を得る
-  2. `EnterPlanMode` で生成計画を作成（構成・要点・参照元を提示）
+  2. 計画承認ゲートで生成計画を作成（Claude Code: `EnterPlanMode` / Codex: 通常応答で計画提示。構成・要点・参照元を提示）
   3. ユーザーが計画を承認
   4. 承認された計画に従って tasks.md を生成
   5. `spec-review` workflow（Claude Code: `/sdd:spec-review tasks` / Codex: `spec-review tasks`）で自動レビューを実行
@@ -376,6 +377,9 @@ Tasks 承認後、ワークツリー内のスペックドキュメントをベ�
    - PR差分が承認済みのSpec関連ファイルに限定されていることを確認
    - `requirements.md`, `design.md`, `tasks.md` の Status が `final` であることを確認
    - 対応するレビューログが `artifacts/REVIEW-*.md` に記録されていることを確認
+   - 最新 `Review NN` block が `Status: latest` で、有効な `Reviewed by` marker を持つことを確認
+   - `Parent agent emergency fallback` marker の場合は、ユーザー承認理由が artifact または triage に記録されていることを確認
+   - `Codex sub-agents` marker の場合は、reviewer count、観点名、raw result file path が artifact または triage に記録されていることを確認
    - CI / secret scan 等の必須チェックが通ることを確認
    - マージ先ブランチとの衝突がないことを確認
 3. 統合前チェックで問題がある場合のみ、必要な修正ループを実行する

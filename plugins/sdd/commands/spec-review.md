@@ -75,19 +75,23 @@ spec-review <対象種別>
 
 #### 4.1 Claude Code実行時
 
-**実行方法**: `codex` skill を使用し、外部 Codex CLI にレビューを委譲する。Claude Code の `Agent` ツールでレビュー用サブエージェントを起動しない。
+**実行方法**: プロジェクトで利用可能なCodex CLI helper、または直接 `codex exec` を使用し、外部Codex CLIにレビューを委譲する。Claude Code の `Agent` ツールでレビュー用サブエージェントを起動しない。
 
 **独立性の目的**: 親エージェントから独立したCodexレビューを使い、実装者の見落としとruntime固有の偏りを減らす。artifactには `<!-- Reviewed by: Codex CLI -->` を該当 `Review NN` block 内に記録し、最新レビューでは `Status: latest` のblockに置く。
 
 **モデル指定禁止**: `-m` フラグは渡さない。`~/.codex/config.toml` のデフォルトモデルに委ねる。
 
-**プロンプトの渡し方**: レビュープロンプトは `#` 見出しを含む複数行のため、`Write` ツールで一時ファイル（`.tmp/codex-prompt.md`）に書き出し、stdin経由で `codex exec` に渡す（`codex` skill の「複数行プロンプトの渡し方」参照）。
+**プロンプトの渡し方**: レビュープロンプトは `#` 見出しを含む複数行のため、`Write` ツールで一時ファイル（`.tmp/codex-prompt.md`）に書き出し、stdin経由で `codex exec` に渡す。
+
+```bash
+codex --ask-for-approval never exec --sandbox read-only -o .tmp/codex-review-result.md - < .tmp/codex-prompt.md
+```
 
 #### 4.2 Codex実行時
 
-**実行方法**: 外部 `codex exec` をネスト起動しない。Codex-native sub-agent review を標準経路として起動し、観点別にレビューする。
+**実行方法**: 外部 `codex exec` をネスト起動しない。Codex runtime が提供するnative sub-agent/delegation機能を標準経路として起動し、観点別にレビューする。これはプラグインmanifestでpackagingする専用agentではなく、Codex親セッション側で利用できる実行機能を使う。
 
-**親エージェント単独レビューの扱い**: 親エージェント単独レビューは通常経路ではない。sub-agent起動がruntime policy、tool failure、その他の技術的制約で実行できない場合に限り、理由を明示してユーザー承認を得てから parent-agent emergency fallback として実施できる。
+**親エージェント単独レビューの扱い**: 親エージェント単独レビューは通常経路ではない。sub-agent起動機能が存在しない、runtime policy、tool failure、その他の技術的制約で実行できない場合に限り、理由を明示してユーザー承認を得てから parent-agent emergency fallback として実施できる。その場合 `Codex sub-agents` marker は使わない。
 
 **emergency fallback確認文**:
 

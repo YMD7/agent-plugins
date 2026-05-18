@@ -16,7 +16,7 @@
 
 ## テンプレートのカスタマイズ
 
-SDD プラグインにはデフォルトのテンプレートが同梱されています（Claude Code: `.claude/plugins/sdd/templates/` / Codex: plugin bundled `templates/`）。
+SDD プラグインにはデフォルトのテンプレートが同梱されています（`$SDD_PLUGIN_ROOT/templates/`）。代表例は Claude Code の `.claude/plugins/sdd/templates/` や、Codex/local checkout の plugin bundled `templates/` です。
 プロジェクト固有の調整が必要な場合、以下の手順でオーバーライドできます:
 
 1. デフォルトテンプレートをこのディレクトリにコピー
@@ -45,9 +45,10 @@ SDD プラグインにはデフォルトのテンプレートが同梱されて�
 
 ### 例: tasks テンプレートをカスタマイズする場合
 
+`$SDD_PLUGIN_ROOT` はSDDプラグインのインストール先を指します。未設定の場合は、導入形態に応じて `.claude/plugins/sdd/` またはCodexのplugin rootを確認してから指定してください。
+
 ```bash
 mkdir -p spec/_custom/templates
-cp .claude/plugins/sdd/templates/spec-tasks-template.md spec/_custom/templates/
-# Codex/local checkout: cp plugins/sdd/templates/spec-tasks-template.md spec/_custom/templates/
+cp "$SDD_PLUGIN_ROOT/templates/spec-tasks-template.md" spec/_custom/templates/
 # spec/_custom/templates/spec-tasks-template.md を編集
 ```
