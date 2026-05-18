@@ -11,6 +11,8 @@ allowed-tools: Bash(bash:*), Bash(git worktree:*), Bash(git branch:*), Bash(git 
 **重要**: このコマンドはプラグイン同梱の `${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-worktree.sh` スクリプトを使用する。
 サブモジュールを含むワークツリーも安全に削除でき、削除前に秘匿ファイルを自動回収する。
 
+Codex wrapper skill から実行する場合は、同じスクリプトを skill からの相対パス `../../scripts/cleanup-worktree.sh` として解決する。
+
 ## 対象
 
 - ワークツリーまたはブランチ: $ARGUMENTS
@@ -40,6 +42,7 @@ cd "$(git worktree list --porcelain | head -1 | sed 's/^worktree //')" && pwd
 
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-worktree.sh $ARGUMENTS
+# Codex wrapper: bash ../../scripts/cleanup-worktree.sh $ARGUMENTS
 ```
 
 **スクリプトの機能**:

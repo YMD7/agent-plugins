@@ -28,13 +28,13 @@ SDD はプラグインにデフォルトテンプレートを同梱し、プロ�
 | 優先順位 | 場所 | 用途 |
 |---|---|---|
 | 1（優先） | `spec/_custom/` | プロジェクト固有のオーバーライド |
-| 2（デフォルト） | `.claude/plugins/sdd/templates/` | プラグイン同梱のデフォルト |
+| 2（デフォルト） | plugin bundled `templates/`（Claude Code: `.claude/plugins/sdd/templates/` / Codex: `plugins/sdd/templates/` または skill 相対 `../../templates/`） | プラグイン同梱のデフォルト |
 
 詳細は `spec/_custom/README.md` を参照。
 
 ## 新規プロジェクトへの導入
 
-`/sdd:init` を実行すると、プロジェクトのコードベースと既存ドキュメントを調査し、SDD に必要な構造を自動構築する。
+`/sdd:init`（Claude Code）または `init` skill（Codex）を実行すると、プロジェクトのコードベースと既存ドキュメントを調査し、SDD に必要な構造を自動構築する。
 
 ## 構成の役割分担
 
@@ -42,4 +42,4 @@ SDD はプラグインにデフォルトテンプレートを同梱し、プロ�
 |---|---|---|
 | フレームワーク | SDD プラグイン (`templates/`) | ワークフロー定義・テンプレート |
 | プロジェクト設定 | `spec/_custom/` | ステアリング・テンプレートオーバーライド |
-| 統合層 | SDD プラグイン (`skills/`, `commands/`) | Claude Code 固有機能（レビュー、PlanMode） |
+| 統合層 | SDD プラグイン (`skills/`, `commands/`) | Claude Code command と Codex wrapper skill の runtime 差分吸収 |

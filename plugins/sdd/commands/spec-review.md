@@ -6,13 +6,16 @@ description: スペックドキュメントレビュー（Codex統合・トリ�
 
 # spec-review
 
-スペックドキュメントをCodexでレビューし、トリアージまで自動実行するコマンド。
+スペックドキュメントを独立レビュアー経路でレビューし、トリアージまで自動実行するworkflow。
 
 ## 使用方法
 
 ```
 /sdd:spec-review <対象種別>
 /sdd:spec-review <対象種別> --fresh   # フレッシュレビュー（初回同等）
+
+# Codexでは spec-review skill から同じworkflowを実行する
+spec-review <対象種別>
 ```
 
 ## 引数
@@ -22,7 +25,8 @@ description: スペックドキュメントレビュー（Codex統合・トリ�
 
 ## 事前参照
 
-- `workflow.md`（テンプレート解決ルール: `spec/_custom/workflow.md` → `.claude/plugins/sdd/templates/framework/workflow.md`） — レビュー観点・ログフォーマット・レビュー修正ループ定義
+- `workflow.md`（テンプレート解決ルール: `spec/_custom/workflow.md` → plugin bundled `templates/framework/workflow.md`） — レビュー観点・ログフォーマット・レビュー修正ループ定義
+- Codex実行時は `skills/spec-review/SKILL.md` wrapper を入口にし、このcommand本文を正本として読む
 
 ## 実行フロー
 
@@ -65,11 +69,49 @@ description: スペックドキュメントレビュー（Codex統合・トリ�
 - ✅ 設計との整合性、タスク粒度・依存関係、規模ガード遵守
 - ✅ repo内実装と外部依存トラックの分離。手動作業が implementation task に混ざっていないか、mock/fixtureで進める範囲とlive verificationでblockedになる範囲が分かれているか
 
-### 4. Codex レビュー実行
+### 4. レビュー実行
 
-**実行方法**: `/codex` スキル（`Skill` ツール）を使用する。`Agent` ツールのサブエージェントとして実行しない。
+実行環境に応じて独立レビュアー経路を切り替える。
 
-**プロンプトの渡し方**: レビュープロンプトは `#` 見出しを含む複数行のため、`Write` ツールで一時ファイル（`.tmp/codex-prompt.md`）に書き出し、`cat ... | codex exec ... -` で stdin 経由で渡す（`/codex` スキルの「複数行プロンプトの渡し方」参照）。
+#### 4.1 Claude Code実行時
+
+**実行方法**: `codex` skill を使用し、外部 Codex CLI にレビューを委譲する。Claude Code の `Agent` ツールでレビュー用サブエージェントを起動しない。
+
+**独立性の目的**: 親エージェントから独立したCodexレビューを使い、実装者の見落としとruntime固有の偏りを減らす。artifactには `<!-- Reviewed by: Codex CLI -->` を該当 `Review NN` block 内に記録し、最新レビューでは `Status: latest` のblockに置く。
+
+**モデル指定禁止**: `-m` フラグは渡さない。`~/.codex/config.toml` のデフォルトモデルに委ねる。
+
+**プロンプトの渡し方**: レビュープロンプトは `#` 見出しを含む複数行のため、`Write` ツールで一時ファイル（`.tmp/codex-prompt.md`）に書き出し、stdin経由で `codex exec` に渡す（`codex` skill の「複数行プロンプトの渡し方」参照）。
+
+#### 4.2 Codex実行時
+
+**実行方法**: 外部 `codex exec` をネスト起動しない。Codex-native sub-agent review を標準経路として起動し、観点別にレビューする。
+
+**親エージェント単独レビューの扱い**: 親エージェント単独レビューは通常経路ではない。sub-agent起動がruntime policy、tool failure、その他の技術的制約で実行できない場合に限り、理由を明示してユーザー承認を得てから parent-agent emergency fallback として実施できる。
+
+**emergency fallback確認文**:
+
+```
+標準の独立レビュー経路（Codex sub-agent review）が {理由} により実行できません。
+独立レビュワー分離がない parent-agent emergency fallback として `spec-review {対象種別}` を実行しましょうか？(y/n)
+```
+
+**並列レビュー観点**:
+
+| 対象         | Reviewer A                 | Reviewer B                       | Reviewer C                         |
+| ------------ | -------------------------- | -------------------------------- | ---------------------------------- |
+| blueprint    | SDD / Blueprint整合性      | Security / secret / logging      | Scope split / issue handoff        |
+| requirements | Scope / AC completeness    | Security / privacy / data policy | Agent ready / verification         |
+| design       | Architecture feasibility   | Security / auth / logging        | API / data / runtime fit           |
+| tasks        | Task decomposition         | Validation / CI / test coverage  | Dependency / external verification |
+
+**統合方法**:
+
+1. 各sub-agentには同じコンテキストチェーン、レビュー対象、分類ルール、出力フォーマットを渡す。
+2. 各sub-agentのraw resultを `.tmp/spec-review-{target}-r{round}-{view}.md` に保存する。
+3. 親エージェントが結果を重複排除し、重大度を揃える。
+4. artifactには `<!-- Reviewed by: Codex sub-agents -->` を該当 `Review NN` block 内に記録し、最新レビューでは `Status: latest` のblockに置く。
+5. artifactまたはtriageに reviewer count、agent IDs（取得できる場合）、観点名、raw result file path を記録する。
 
 #### 初回 / フレッシュレビュープロンプト
 
@@ -121,25 +163,32 @@ description: スペックドキュメントレビュー（Codex統合・トリ�
 3. 前回から変更されていない箇所への新規指摘は [New-Finding] タグを付与
 ```
 
-#### Codex CLI 失敗時のフォールバック
+#### レビュー実行失敗時のフォールバック
 
-Codex CLI がエラーで失敗した場合（モデル非対応、認証エラー等）:
+外部Codex CLIまたはCodex-native sub-agent reviewが失敗した場合:
 
 1. エラー内容をユーザーに報告
-2. 同じレビュープロンプトを使用して、親エージェント（Claude）が直接レビューを実施
-3. レビュー結果は Codex 実行時と同じフォーマットで出力
-4. レビュー結果の冒頭に `<!-- Reviewed by: Claude (Codex fallback) -->` コメントを付与し、レビュアーを記録
+2. 標準の独立レビュー経路を再実行できない理由を明示
+3. parent-agent emergency fallbackで進める許可をユーザーに確認
+4. 許可された場合のみ、同じレビュープロンプトを使用して親エージェントが直接レビューを実施
+5. レビュー結果は通常レビューと同じフォーマットで出力
+6. レビュー結果の該当 `Review NN` block 内に `<!-- Reviewed by: Parent agent emergency fallback; user-approved -->` コメントを付与し、独立レビュワー分離がないことを記録
 
 ### 5. レビュー結果出力
 
-レビュー結果を `artifacts/REVIEW-{TARGET}.md` に出力し、コミットする。
+レビュー結果を `artifacts/REVIEW-{TARGET}.md` に出力し、コミットする。最新 `Review NN` block には実行経路に応じた reviewer marker を必ず入れる:
 
-### 6. トリアージ（サブエージェント）
+- `<!-- Reviewed by: Codex CLI -->`
+- `<!-- Reviewed by: Codex sub-agents -->`
+- `<!-- Reviewed by: Parent agent emergency fallback; user-approved -->`
+
+### 6. トリアージ
 
 レビュー結果を自動トリアージ:
 
 - `workflow.md`（テンプレート解決ルール参照）のレビュー修正ループ手順に従う
 - 結果を `.tmp/triage-spec-{spec}-{target}-r{round}.md` に書き出し
+- parent-agent emergency fallback を使った場合は、artifactとtriageにユーザー承認済みfallbackであることを明記する
 
 ### 7. スコープ外追記
 

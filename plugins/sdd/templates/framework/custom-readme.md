@@ -16,7 +16,7 @@
 
 ## テンプレートのカスタマイズ
 
-SDD プラグインにはデフォルトのテンプレートが同梱されています（`.claude/plugins/sdd/templates/`）。
+SDD プラグインにはデフォルトのテンプレートが同梱されています（Claude Code: `.claude/plugins/sdd/templates/` / Codex: plugin bundled `templates/`）。
 プロジェクト固有の調整が必要な場合、以下の手順でオーバーライドできます:
 
 1. デフォルトテンプレートをこのディレクトリにコピー
@@ -29,24 +29,25 @@ SDD プラグインにはデフォルトのテンプレートが同梱されて�
 
 | ファイル | 用途 | デフォルトの場所 |
 |---|---|---|
-| `workflow.md` | ワークフロー定義 | `.claude/plugins/sdd/templates/framework/workflow.md` |
-| `prompt.md` | Spec生成システムプロンプト | `.claude/plugins/sdd/templates/framework/prompt.md` |
+| `workflow.md` | ワークフロー定義 | plugin bundled `templates/framework/workflow.md` |
+| `prompt.md` | Spec生成システムプロンプト | plugin bundled `templates/framework/prompt.md` |
 
 **テンプレート**（`templates/` サブディレクトリに配置）:
 
 | ファイル | 用途 | デフォルトの場所 |
 |---|---|---|
-| `spec-requirements-template.md` | 要件定義テンプレート | `.claude/plugins/sdd/templates/` |
-| `spec-design-template.md` | 設計書テンプレート | `.claude/plugins/sdd/templates/` |
-| `spec-tasks-template.md` | タスクリストテンプレート | `.claude/plugins/sdd/templates/` |
-| `blueprint-overview.md` | BP概要テンプレート | `.claude/plugins/sdd/templates/` |
-| `blueprint-architecture.md` | BPアーキテクチャテンプレート | `.claude/plugins/sdd/templates/` |
-| `blueprint-scope-template.md` | BPスコープテンプレート | `.claude/plugins/sdd/templates/` |
+| `spec-requirements-template.md` | 要件定義テンプレート | plugin bundled `templates/` |
+| `spec-design-template.md` | 設計書テンプレート | plugin bundled `templates/` |
+| `spec-tasks-template.md` | タスクリストテンプレート | plugin bundled `templates/` |
+| `blueprint-overview.md` | BP概要テンプレート | plugin bundled `templates/` |
+| `blueprint-architecture.md` | BPアーキテクチャテンプレート | plugin bundled `templates/` |
+| `blueprint-scope-template.md` | BPスコープテンプレート | plugin bundled `templates/` |
 
 ### 例: tasks テンプレートをカスタマイズする場合
 
 ```bash
 mkdir -p spec/_custom/templates
 cp .claude/plugins/sdd/templates/spec-tasks-template.md spec/_custom/templates/
+# Codex/local checkout: cp plugins/sdd/templates/spec-tasks-template.md spec/_custom/templates/
 # spec/_custom/templates/spec-tasks-template.md を編集
 ```

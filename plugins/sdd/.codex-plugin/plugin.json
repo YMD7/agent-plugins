@@ -1,0 +1,34 @@
+{
+  "name": "sdd",
+  "version": "0.1.0",
+  "description": "Spec-Driven Development framework for Claude Code and Codex",
+  "author": {
+    "name": "YMD7"
+  },
+  "repository": "https://github.com/YMD7/claude-plugins",
+  "license": "MIT",
+  "keywords": [
+    "sdd",
+    "spec-driven-development",
+    "requirements",
+    "design",
+    "tasks"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "SDD",
+    "shortDescription": "Spec-driven development workflow for Claude Code and Codex.",
+    "longDescription": "Generate and review Blueprint, requirements, design, and task specs with manual-work preflight and formal review gates.",
+    "developerName": "YMD7",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Create an SDD blueprint from my feature idea.",
+      "Generate requirements for the selected SDD scope.",
+      "Review this SDD spec document."
+    ]
+  }
+}

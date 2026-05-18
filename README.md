@@ -1,23 +1,34 @@
 # claude-plugins
 
-Claude Code プラグインのモノレポ。
+Claude Code / Codex 向けプラグインのモノレポ。
 
 ## Plugins
 
 | Plugin | Description |
 |--------|-------------|
-| [sdd](./plugins/sdd/) | Spec-Driven Development framework |
+| [sdd](./plugins/sdd/) | Spec-Driven Development framework for Claude Code / Codex |
 | [terse-mode](./plugins/terse-mode/) | Output token reduction mode for Claude Code workflows |
 
 ## Usage
 
-### 一時的に使う（セッション単位）
+### Codexで使う（ローカルマーケットプレイス）
+
+Codex向けmanifestは `plugins/sdd/.codex-plugin/plugin.json`、ローカルマーケットプレイスは `.agents/plugins/marketplace.json` に配置している。
+
+```bash
+codex plugin marketplace add /absolute/path/to/claude-plugins/.agents/plugins
+codex plugin install sdd@ymd7-plugins
+```
+
+Codexでは `spec` / `init` / `spec-review` / `create-worktree` / `cleanup-worktree` / `fix-review` / `plan-task` skill を使う。
+
+### Claude Codeで一時的に使う（セッション単位）
 
 ```bash
 claude --plugin-dir ./plugins/sdd
 ```
 
-### プロジェクトに導入する（永続）
+### Claude Codeプロジェクトに導入する（永続）
 
 1. 導入先プロジェクトの `.claude/plugins/` にプラグインを配置する（コピーまたはシンボリックリンク）
 

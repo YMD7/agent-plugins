@@ -8,14 +8,20 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 
 ## 概要
 
-このSkillは、仕様駆動開発（Spec-Driven Development, SDD）の全プロセスをClaude Code上で支援する。
+このSkillは、仕様駆動開発（Spec-Driven Development, SDD）の全プロセスをClaude Code / Codex上で支援する。
 
-フレームワーク（ワークフロー定義・テンプレート）はプラグイン `.claude/plugins/sdd/templates/` に同梱されている。
+フレームワーク（ワークフロー定義・テンプレート）はプラグインの `templates/` に同梱されている。
 プロジェクト固有のステアリングは `spec/_custom/steering/` に配置し、テンプレートは `spec/_custom/` でオーバーライドできる。
+
+## Runtime互換
+
+- Claude Code: `/sdd:*` custom command と plugin skill として動作する。
+- Codex: `.codex-plugin/plugin.json` から読み込まれる skill として動作し、Claude command 相当の操作は `skills/*/SKILL.md` のwrapperが `commands/*.md` を読む。
+- 共有本体はこのプラグインディレクトリに置き、runtime差分はcommandまたはwrapper skillで吸収する。
 
 ## 前提条件
 
-SDDフレームワークがプロジェクトにセットアップ済みであること。未セットアップの場合は `/sdd:init` を先に実行する。
+SDDフレームワークがプロジェクトにセットアップ済みであること。未セットアップの場合は `/sdd:init`（Claude Code）または `init` skill（Codex）を先に実行する。
 
 ```
 必要な構造:
@@ -24,6 +30,7 @@ SDDフレームワークがプロジェクトにセットアップ済みであ�
 │   │   ├── workflow.md               # ワークフロー定義
 │   │   └── prompt.md                 # Spec生成システムプロンプト
 │   └── (テンプレート群)
+├── plugins/sdd/templates/            # Codexローカルpluginとして使う場合の同梱テンプレート
 └── spec/_custom/                     # プロジェクト固有設定
     ├── steering/                     # ステアリング（必須）
     │   ├── project.md                # プロダクト概要・ビジョン
@@ -39,12 +46,14 @@ SDDフレームワークがプロジェクトにセットアップ済みであ�
 ### フレームワークドキュメント（workflow.md, prompt.md）
 
 1. `spec/_custom/{filename}` が存在する場合 → そちらを使用
-2. 存在しない場合 → `.claude/plugins/sdd/templates/framework/{filename}` を使用
+2. 存在しない場合 → プラグイン同梱 `templates/framework/{filename}` を使用
+   - Claude Code: `.claude/plugins/sdd/templates/framework/{filename}`
+   - Codex/local checkout: `plugins/sdd/templates/framework/{filename}` または skill からの相対 `../../templates/framework/{filename}`
 
 ### テンプレート（spec-\*.md, blueprint-\*.md）
 
 1. `spec/_custom/templates/{filename}` が存在する場合 → そちらを使用
-2. 存在しない場合 → `.claude/plugins/sdd/templates/{filename}` を使用
+2. 存在しない場合 → プラグイン同梱 `templates/{filename}` を使用
 
 ### ステアリング
 
@@ -114,15 +123,21 @@ Spec生成時は、対象Scopeを実装するうえでユーザーの手動作�
 
 ## レビュー/フィードバックループ
 
-Specドキュメントのレビューは `/sdd:spec-review` コマンドで実行する。
+Specドキュメントのレビューは runtime に応じて同じ review workflow で実行する。
 
 ```
-/sdd:spec-review requirements    # requirements.md のレビュー
-/sdd:spec-review design          # design.md のレビュー
-/sdd:spec-review tasks           # tasks.md のレビュー
+# Claude Code
+/sdd:spec-review requirements
+/sdd:spec-review design
+/sdd:spec-review tasks
+
+# Codex
+spec-review requirements
+spec-review design
+spec-review tasks
 ```
 
-`/sdd:spec-review` はコンテキストチェーン構築、レビュー、トリアージまで自動実行する。
+`spec-review` workflow はコンテキストチェーン構築、レビュー、トリアージまで自動実行する。
 レビュー修正ループの詳細は `workflow.md` の「レビュー/フィードバックループ」セクションを参照。
 
 > レビューログのフォーマットは `workflow.md` の「レビュー/フィードバックループ」セクションに定義。
@@ -131,7 +146,7 @@ Specドキュメントのレビューは `/sdd:spec-review` コマンドで実�
 
 ### 必須事項
 
-1. **ワークツリー必須**: Spec生成は必ずワークツリー内で作業する。`/sdd:create-worktree sdd B{nn}-S{nn}` でワークツリーを作成してから開始する。すべてのファイル操作はワークツリーパス（`.worktrees/{worktree-name}/...`）で行うこと
+1. **ワークツリー必須**: Spec生成は必ずワークツリー内で作業する。`/sdd:create-worktree sdd B{nn}-S{nn}`（Claude Code）または `create-worktree sdd B{nn}-S{nn}`（Codex）でワークツリーを作成してから開始する。すべてのファイル操作はワークツリーパス（`.worktrees/{worktree-name}/...`）で行うこと
 2. **事前読込**: `spec/_custom/steering/` の必須ファイルと `workflow.md` を必ず参照（テンプレート解決ルールに従う）
 3. **動的参照**: タスクに応じてプロジェクトの `docs/` から関連ドキュメントを検索・参照
 4. **手動作業プレフライト**: Requirements生成前に、ユーザー手動作業・外部依存・secret管理・権限・live verificationの必要性を調査し、各Spec文書へ反映する
@@ -140,7 +155,7 @@ Specドキュメントのレビューは `/sdd:spec-review` コマンドで実�
 7. **タスク完了の表記**: タスク実行時、完了済みタスクには ✅ を付与する
 8. **PlanMode必須（ドラフト生成・修正の両方）**: Specドキュメントの生成・修正を行う前に必ず `EnterPlanMode` で計画を作成し、ユーザー承認を得てから実行する。詳細は下記「PlanModeゲート」セクションを参照
 9. **都度コミット**: Spec文書の生成・修正・レビューログ記録など、ファイルに変更が生じたら都度コミットする（ワークツリー内で `git -C {worktree}` を使用）
-10. **完了後の統合**: Tasks 承認後、PRを作成し、内容レビューではなく統合前チェックを実行してからマージ → ワークツリークリーンアップの流れで統合する。プロジェクトにPR/チェック/マージ用のコマンドがあればそれを使用し、なければ `/sdd:cleanup-worktree` でクリーンアップする
+10. **完了後の統合**: Tasks 承認後、PRを作成し、内容レビューではなく統合前チェックを実行してからマージ → ワークツリークリーンアップの流れで統合する。プロジェクトにPR/チェック/マージ用のコマンドがあればそれを使用し、なければ `/sdd:cleanup-worktree`（Claude Code）または `cleanup-worktree` skill（Codex）でクリーンアップする
 
 ### PlanModeゲート
 

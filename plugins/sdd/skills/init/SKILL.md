@@ -11,6 +11,12 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 プロジェクトに SDD（Spec-Driven Development）フレームワークを導入するための初期セットアップを行う。
 プロジェクトのコードベースと既存ドキュメントをサブエージェントで徹底調査し、SDD に必要な構造を構築する。
 
+## Runtime互換
+
+- Claude Code: plugin skill と `Agent` tool を使用する。
+- Codex: plugin skill と Codex-native sub-agent を使用する。Claude-only frontmatterや`Agent` tool表記は、同等のCodex sub-agent起動に読み替える。
+- どちらのruntimeでも、調査結果・質問・ドラフトの出力先は `.tmp/sdd-init/` に統一する。
+
 ## 前提条件
 
 - Git リポジトリであること
@@ -42,7 +48,7 @@ grep -q '^\.tmp' .gitignore 2>/dev/null || echo '.tmp' >> .gitignore
 
 **ブランチを切る場合**:
 1. ベースブランチを確認する（「どのブランチから切りますか？」）
-2. `/sdd:create-worktree` でワークツリーを作成する（プレフィックス: `sdd-init`）
+2. runtimeに応じて `/sdd:create-worktree`（Claude Code）または `create-worktree` skill（Codex）でワークツリーを作成する（プレフィックス: `sdd-init`）
 3. 以降のすべての作業はワークツリー内で実施する
 
 **現在のブランチに直接コミットする場合**:

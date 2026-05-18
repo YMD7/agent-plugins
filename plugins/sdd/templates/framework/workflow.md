@@ -28,7 +28,7 @@
   - 任意ファイル:
     - `workflow.md`: プロジェクト固有のワークフロー・ルール
 - テンプレート
-  - テンプレート解決ルールに従い、`spec/_custom/templates/` → `.claude/plugins/sdd/templates/` の順で参照
+  - テンプレート解決ルールに従い、`spec/_custom/templates/` → plugin bundled `templates/` の順で参照
   - Blueprint用: `blueprint-overview.md`, `blueprint-architecture.md`
   - Scope用: `blueprint-scope-template.md`
   - Spec用: `spec-requirements-template.md`, `spec-design-template.md`, `spec-tasks-template.md`
@@ -173,6 +173,10 @@ Specification（仕様）生成では段階的な承認フローを採用しま�
 - requirements.md / design.md / tasks.md は、それぞれ対応するレビュー用ファイルに時系列で追記する
 - 同一ドキュメントのレビューは連番で付与する（Review 01, 02, 03...）
 - 最新レビューには「Status: latest」を付ける
+- 最新レビューには実行経路を示す reviewer marker を `Review NN` block 内に付ける:
+  - `<!-- Reviewed by: Codex CLI -->`
+  - `<!-- Reviewed by: Codex sub-agents -->`
+  - `<!-- Reviewed by: Parent agent emergency fallback; user-approved -->`
 - **修正内容の記録**: 各レビューに対する修正は、そのレビューのセクション内に「Revision 01, 02...」として追記する
 - **Review と Revision の対応**: Review 01 → Revision 01, Review 02 → Revision 02 のように、必ず連番を対応させる（Review 02 に対して Revision 01 とするのは誤り）
 
@@ -181,6 +185,7 @@ Specification（仕様）生成では段階的な承認フローを採用しま�
 ```
 ## YYYY-MM-DD {対象} Review 01
 Status: superseded（次のReviewがある場合）/ latest（最新の場合）
+<!-- Reviewed by: Codex CLI / Codex sub-agents / Parent agent emergency fallback; user-approved -->
 
 ### 対象
 - ファイルパス
@@ -259,7 +264,7 @@ AIが以下を生成:
 - `architecture.md`: 技術アーキテクチャ・コンポーネント・実装順序
 - `scopes/{nn}-{slug}.md`: 適切な開発スコープに分割された仕様
 
-生成時はテンプレート解決ルール（`spec/_custom/templates/` → `.claude/plugins/sdd/templates/`）に従い、テンプレートを参考にすること。
+生成時はテンプレート解決ルール（`spec/_custom/templates/` → plugin bundled `templates/`）に従い、テンプレートを参考にすること。
 
 ### 3. レビュー・修正
 
@@ -279,10 +284,11 @@ AIが以下を生成:
 
 ### 0. ワークツリー作成
 
-Spec生成はワークツリー内で作業する。ワークツリーの作成には `/sdd:create-worktree` を使用する。
+Spec生成はワークツリー内で作業する。ワークツリーの作成には runtime に応じて `/sdd:create-worktree`（Claude Code）または `create-worktree` skill（Codex）を使用する。
 
 ```
 /sdd:create-worktree sdd B{nn}-S{nn}
+# Codex: create-worktree sdd B{nn}-S{nn}
 ```
 
 - ワークツリー: `.worktrees/sdd-B{nn}-S{nn}-{slug}`
@@ -311,14 +317,14 @@ Requirements生成前に、対象Scopeの実装でユーザーの手動作業が
 
 ### 3. Requirements 生成
 
-- **入力**: 対象Scope + `overview.md` + `architecture.md` + ステアリング
+- **入力**: 対象Scope + `overview.md` + `architecture.md` + ステアリング + 手動作業プレフライト結果
 - **出力**: `spec/specs/B{nn}-S{nn}-{slug}/requirements.md`
 - **手順**:
   1. 「{stage}の生成計画を作成しましょうか？(y/n)」でユーザー承認を得る
   2. `EnterPlanMode` で生成計画を作成（構成・要点・参照元・手動作業プレフライト結果を提示）
   3. ユーザーが計画を承認
   4. 承認された計画に従って requirements.md を生成
-  5. `/sdd:spec-review requirements` で自動レビューを実行
+  5. `spec-review` workflow（Claude Code: `/sdd:spec-review requirements` / Codex: `spec-review requirements`）で自動レビューを実行
   6. レビュー修正ループ（指摘がなくなるまで繰り返す。詳細は「レビュー/フィードバックループ」セクション参照）
   7. ユーザーにレビューを依頼し、承認を待つ
 - **承認後**: requirements.md の Status を `final` に更新し、コミットする
@@ -334,7 +340,7 @@ Requirements生成前に、対象Scopeの実装でユーザーの手動作業が
   2. `EnterPlanMode` で生成計画を作成（構成・要点・参照元を提示）
   3. ユーザーが計画を承認
   4. 承認された計画に従って design.md を生成
-  5. `/sdd:spec-review design` で自動レビューを実行
+  5. `spec-review` workflow（Claude Code: `/sdd:spec-review design` / Codex: `spec-review design`）で自動レビューを実行
   6. レビュー修正ループ（指摘がなくなるまで繰り返す。詳細は「レビュー/フィードバックループ」セクション参照）
   7. ユーザーにレビューを依頼し、承認を待つ
 - **承認後**: design.md の Status を `final` に更新し、コミットする
@@ -356,7 +362,7 @@ Requirements生成前に、対象Scopeの実装でユーザーの手動作業が
   2. `EnterPlanMode` で生成計画を作成（構成・要点・参照元を提示）
   3. ユーザーが計画を承認
   4. 承認された計画に従って tasks.md を生成
-  5. `/sdd:spec-review tasks` で自動レビューを実行
+  5. `spec-review` workflow（Claude Code: `/sdd:spec-review tasks` / Codex: `spec-review tasks`）で自動レビューを実行
   6. レビュー修正ループ（指摘がなくなるまで繰り返す。詳細は「レビュー/フィードバックループ」セクション参照）
   7. ユーザーにレビューを依頼し、承認を待つ
 - **承認後**: tasks.md の Status を `final` に更新し、コミットする
@@ -374,7 +380,7 @@ Tasks 承認後、ワークツリー内のスペックドキュメントをベ�
    - マージ先ブランチとの衝突がないことを確認
 3. 統合前チェックで問題がある場合のみ、必要な修正ループを実行する
 4. PRをマージする（プロジェクトのマージワークフローに従う）
-5. `/sdd:cleanup-worktree` でワークツリーを削除
+5. runtimeに応じて `/sdd:cleanup-worktree`（Claude Code）または `cleanup-worktree` skill（Codex）でワークツリーを削除
 
 ### ステップ間の接続
 

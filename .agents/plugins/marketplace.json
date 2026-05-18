@@ -1,0 +1,20 @@
+{
+  "name": "ymd7-plugins",
+  "interface": {
+    "displayName": "YMD7 Plugins"
+  },
+  "plugins": [
+    {
+      "name": "sdd",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sdd"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
