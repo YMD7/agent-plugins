@@ -11,6 +11,12 @@
 **Phase 1の対象範囲:**
 - {Phase 1で対象とする範囲を箇条書きで記載}
 
+**手動作業プレフライトの結果:**
+- **確認した情報源**: {env template / CI / IaC / deploy設定 / docs / runbook / 既存script / secret管理方針など}
+- **AI単独で実装可能な範囲**: {repo内実装、mock/fixture検証、自動テストなど}
+- **ユーザー手動作業が必要な範囲**: {必要な場合は概要。不要な場合は「追加手動作業なし」と根拠を記載}
+- **未確認事項**: {存在する場合のみ。推測で完了扱いにしない}
+
 ---
 
 ## 要件1: {要件名}
@@ -75,6 +81,25 @@ So that {理由・ビジネス価値}
 ---
 
 ## 制約・前提条件
+
+### 単独完結項目
+- ✅ {AIがrepo内で実装・検証できる項目1}
+- ✅ {AIがrepo内で実装・検証できる項目2}
+- ✅ {mock / fixture / dry-run で代替検証できる項目}
+
+### 外部依存・手動作業
+
+> 手動作業が不要な場合も、確認した根拠と「追加手動作業なし」を記載する。
+> secret値、token実値、credential、個人情報、dashboard screenshotのraw値は記録しない。
+
+| 項目 | Owner role | 必要権限 | secret / config / template | 成功条件 | blocked AC / test | 未完了時の扱い |
+|------|------------|----------|-----------------------------|----------|-------------------|----------------|
+| {例: 外部サービスのサインアップ / plan有効化} | {service admin / billing admin} | {org admin / billing permission} | {なし、または設定名のみ} | {利用可能状態を確認できる} | {ACn.n, テストn} | {live verificationをblocked。fixture検証は継続} |
+| {例: API token / service account発行} | {service admin + secret manager admin} | {token create, secret write} | `{ENV_NAME}`, `{secret template path}` | {token検証コマンドがsecret非露出で成功} | {ACn.n, テストn} | {該当scriptはfail-closed} |
+| {例: OAuth app / webhook / redirect URI設定} | {service admin} | {app config write} | `{CLIENT_ID}`, `{WEBHOOK_SECRET}` | {callback / webhook smokeが成功} | {ACn.n} | {OAuth/webhook live checkをblocked} |
+| {例: DNS / domain / TLS / Access policy設定} | {infra admin} | {DNS / edge policy write} | `{BASE_URL}`, `{ALLOWED_HOSTS}` | {想定hostで到達し、保護範囲が確認済み} | {ACn.n} | {preview/production smokeをblocked} |
+| {例: DB migration / backfill / purge承認} | {maintainer / DBA} | {target env DB write} | `{DATABASE_URL}` | {承認済み手順で実行し監査記録が残る} | {ACn.n, 手動テストn} | {live data変更は未実行として記録} |
+| {例: Apple/Google developer / push通知証明書} | {mobile release admin} | {developer account / certificate write} | `{PUSH_KEY_ID}` など設定名のみ | {配布/通知smokeが成功} | {ACn.n} | {device/TestFlight live検証をblocked} |
 
 ### 依存関係
 - ✅ {前提条件1}

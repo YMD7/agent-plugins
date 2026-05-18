@@ -20,6 +20,59 @@
 - 規模ガード（例: ≤400行/≤10ファイル、≤1日作業、≤$100コストなど）を設定すること
 - 前段タスクの成果物（設計書、環境、データなど）を参照してから実装を開始すること
 - 追加の仕様・契約が必要な場合は design.md を更新してから実装すること
+- ユーザー手動作業は repo内実装タスクと分離し、owner role、必要権限、secret/config名、成功条件、blocked scopeを明記すること
+- サインアップ、課金変更、token発行、secret登録、dashboard設定、live DB migration、本番deploy、manual purge、developer account設定などをAIが未承認で実行しないこと
+- 手動作業が未完了でも進められる mock / fixture / dry-run / contract test と、live verificationでblockedになる項目を分けること
+
+---
+
+## External Track 0: Manual Setup Preflight（必要な場合のみ）
+
+このトラックはユーザーまたは管理者の手動作業を記録する外部依存トラックであり、repo実装PRそのものではない。該当する手動作業がない場合は、確認した根拠と「追加手動作業なし」を短く記載する。
+
+- [ ] E0.1: **{外部サービス / アカウント / plan の利用可否を確認する}**
+      _要件_: requirements.{AC}
+      _依存_: なし
+      _Owner_: {service admin / billing admin / maintainer}
+      _必要権限_: {org admin / billing / service read}
+      _secret / config_: {なし、または設定名のみ}
+      _完了条件_:
+  - {サービス、plan、quota、規約同意、組織権限が要件を満たすことを確認する}
+  - {未確認または不足がある場合は blocked として記録する}
+  - secret値、token実値、credential、dashboard screenshotのraw値を保存しない
+
+- [ ] E0.2: **{API token / service account / OAuth app / webhook secret を発行・登録する}**
+      _要件_: requirements.{AC}
+      _依存_: E0.1
+      _Owner_: {service admin + secret manager admin}
+      _必要権限_: {token create / app config write / secret write}
+      _secret / config_: `{ENV_NAME}`, `{secret template path}`
+      _完了条件_:
+  - {必要最小権限のtoken / app / webhookが作成され、プロジェクトのsecret管理機構へ登録されている}
+  - {検証コマンドがsecret非露出で成功する、または閉じたreasonCodeでfail-closedする}
+  - 未完了の場合、該当live verificationをblockedにし、mock / fixture検証だけを完了扱いにする
+
+- [ ] E0.3: **{DNS / cloud resource / runtime config / Access policy を確認する}**
+      _要件_: requirements.{AC}
+      _依存_: E0.1
+      _Owner_: {infra admin / platform admin}
+      _必要権限_: {resource create / DNS write / policy write}
+      _secret / config_: `{BASE_URL}`, `{ALLOWED_HOSTS}`, `{RUNTIME_SECRET_NAME}`
+      _完了条件_:
+  - {対象環境にresource / route / policy / runtime configが存在し、境界が確認できる}
+  - {通常APIとadmin/debug/smoke経路の認可境界を確認する}
+  - 未確認の場合、deploy / smoke / live query を blocked として記録する
+
+- [ ] E0.4: **{live data operation / migration / release / device検証を実施またはblocked記録する}**
+      _要件_: requirements.{AC}
+      _依存_: E0.2, E0.3
+      _Owner_: {maintainer / DBA / release admin / QA}
+      _必要権限_: {target env write / release admin / test device access}
+      _secret / config_: `{DATABASE_URL}` など設定名のみ
+      _完了条件_:
+  - {ユーザー承認済みの場合のみ live operation を実行する}
+  - {未承認、権限不足、対象データ不足の場合は blocked 理由と失われる検出範囲を記録する}
+  - rollback / purge / release 操作は明示承認なしで実行しない
 
 ---
 

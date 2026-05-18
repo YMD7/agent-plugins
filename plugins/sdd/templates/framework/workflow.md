@@ -295,13 +295,27 @@ Spec生成はワークツリー内で作業する。ワークツリーの作成�
 
 Blueprint内の特定Scopeを選択（例: `scopes/01-user-auth.md`）
 
-### 2. Requirements 生成
+### 2. 手動作業プレフライト
+
+Requirements生成前に、対象Scopeの実装でユーザーの手動作業が必要かを調査する。調査結果は Requirements → Design → Tasks の各段階へ引き継ぐ。
+
+- **入力**: 対象Scope + `overview.md` + `architecture.md` + ステアリング + 関連docs/runbook + repo設定
+- **出力**: requirements.md / design.md / tasks.md に反映する手動作業・外部依存の整理
+- **手順**:
+  1. env template、secret管理、CI/CD、IaC、deploy設定、package manager、mobile/native設定、DB migration、docs/runbook、既存scriptを確認する
+  2. サインアップ、課金/plan、API token、OAuth app、webhook、DNS/TLS、cloud resource、IAM/service account、environment secret、developer account、証明書、push通知、手動QA、production operationの要否を洗い出す
+  3. secret/config名、owner role、必要権限、成功条件、blocked AC/test/task、未完了時の扱い、fallback/fail-closedを整理する
+  4. AIが未承認で実行しない操作を明確にする。例: live DB migration、本番deploy、課金変更、token発行、secret値の閲覧/登録、manual purge、dashboard設定、ユーザー影響のあるbackfill
+  5. 手動作業が不要な場合も、確認した根拠と「追加手動作業なし」をSpecに残す
+- **禁止**: 憶測で「既にセットアップ済み」「通常あるはず」と扱うこと。secret値、token実値、credential、個人情報、dashboard screenshotのraw値をSpecや`.tmp`へ保存すること。
+
+### 3. Requirements 生成
 
 - **入力**: 対象Scope + `overview.md` + `architecture.md` + ステアリング
 - **出力**: `spec/specs/B{nn}-S{nn}-{slug}/requirements.md`
 - **手順**:
   1. 「{stage}の生成計画を作成しましょうか？(y/n)」でユーザー承認を得る
-  2. `EnterPlanMode` で生成計画を作成（構成・要点・参照元を提示）
+  2. `EnterPlanMode` で生成計画を作成（構成・要点・参照元・手動作業プレフライト結果を提示）
   3. ユーザーが計画を承認
   4. 承認された計画に従って requirements.md を生成
   5. `/sdd:spec-review requirements` で自動レビューを実行
@@ -310,7 +324,7 @@ Blueprint内の特定Scopeを選択（例: `scopes/01-user-auth.md`）
 - **承認後**: requirements.md の Status を `final` に更新し、コミットする
 - **承認条件**: Requirements承認まで次段階に進まない
 
-### 3. Design 生成（Requirements承認後のみ）
+### 4. Design 生成（Requirements承認後のみ）
 
 - **前提条件**: requirements.mdがユーザー承認済み
 - **入力**: `requirements.md` + ステアリング
@@ -332,7 +346,7 @@ Blueprint内の特定Scopeを選択（例: `scopes/01-user-auth.md`）
 - ADR はADRディレクトリ（プロジェクトの慣例に従う）に配置
 - **注意**: ADR の運用はプロジェクトによって任意。ADR を採用していないプロジェクトではこのステップをスキップしてよい
 
-### 4. Tasks 生成（Design承認後のみ）
+### 5. Tasks 生成（Design承認後のみ）
 
 - **前提条件**: design.mdがユーザー承認済み
 - **入力**: `design.md` + ステアリング
@@ -347,7 +361,7 @@ Blueprint内の特定Scopeを選択（例: `scopes/01-user-auth.md`）
   7. ユーザーにレビューを依頼し、承認を待つ
 - **承認後**: tasks.md の Status を `final` に更新し、コミットする
 
-### 5. PR・マージ・クリーンアップ
+### 6. PR・マージ・クリーンアップ
 
 Tasks 承認後、ワークツリー内のスペックドキュメントをベースブランチにマージする。
 
@@ -364,11 +378,12 @@ Tasks 承認後、ワークツリー内のスペックドキュメントをベ�
 
 ### ステップ間の接続
 
-| 完了ステップ        | 次の提案                                                                 |
-| ------------------- | ------------------------------------------------------------------------ |
-| 0 (create-worktree) | → Scope を選択してドキュメント生成に進みましょうか？(y/n)                |
-| 4 (tasks.md 承認)   | → PRを作成しましょうか？(y/n)                                            |
-| PR マージ後         | → `/sdd:cleanup-worktree {worktree}` でクリーンアップしましょうか？(y/n) |
+| 完了ステップ               | 次の提案                                                                 |
+| -------------------------- | ------------------------------------------------------------------------ |
+| 0 (create-worktree)        | → Scope を選択してドキュメント生成に進みましょうか？(y/n)                |
+| 2 (手動作業プレフライト)   | → Requirements の生成計画を作成しましょうか？(y/n)                       |
+| 5 (tasks.md 承認)          | → PRを作成しましょうか？(y/n)                                            |
+| PR マージ後                | → `/sdd:cleanup-worktree {worktree}` でクリーンアップしましょうか？(y/n) |
 
 ## 実行規約
 
@@ -377,6 +392,7 @@ Tasks 承認後、ワークツリー内のスペックドキュメントをベ�
 - **ADR 作成**: Blueprint 生成・Spec 生成の過程で技術判断（アーキテクチャ方式選定、技術スタック決定、ライブラリ選定、Go/No-Go 判定等）を行った場合は、ADR を作成する。
 - **開発ドキュメント参照**: 作業開始時にプロジェクトの開発ドキュメントを一覧し、関係がありそうな内容を必ず参照する。
   - **適用範囲**: Blueprint生成、Spec生成、レビュー/修正、タスク実行など、SDDに関わるすべてのプロセスで実施する。
+- **手動作業プレフライト**: Spec生成時は、repo実装とユーザー手動作業の境界を必ず確認し、requirements.md / design.md / tasks.md に反映する。
 - **順序遵守**: Requirements → Design → Tasks の順で生成する。各段階では前段のドキュメントを参照すること。
 - **承認チェック**: 次段階の生成前に、前段階のドキュメントがユーザー承認済みであることを確認する。
 - **参照優先**: Blueprintは `spec/blueprints/` を正とし、旧配置は読み取りフォールバックのみ（存在する場合）。
@@ -395,6 +411,7 @@ Tasks 承認後、ワークツリー内のスペックドキュメントをベ�
 - **Requirements生成失敗**: ステアリングファイル確認、Blueprint内容の再検討
 - **Design生成失敗**: Requirements承認状況確認、技術制約の見直し
 - **Tasks生成失敗**: Design承認状況確認、実装可能性の再評価
+- **手動作業が未確認**: Requirements生成を停止し、確認済み情報源、未確認項目、ユーザーに判断が必要な点を提示する
 
 ---
 
@@ -403,3 +420,4 @@ Tasks 承認後、ワークツリー内のスペックドキュメントをベ�
 - **承認前の進行**: 前段階のドキュメントがユーザー未承認の場合、次段階の生成を開始してはならない。
 - **上流未参照**: Requirements未参照のDesign、Design未参照のTasks。
 - **固有情報の分散**: ステアリング以外へのプロジェクト固有情報の記述。
+- **手動作業の推測**: 外部サービス、secret、権限、課金、live環境操作が必要か未確認のまま、存在済み・完了済みとして扱ってはならない。

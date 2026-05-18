@@ -12,6 +12,16 @@
 **Phase 1の対象範囲:**
 - {Phase 1で対象とする範囲を箇条書きで記載}
 
+**確認した現状:**
+- {requirements.md の手動作業プレフライトで確認したrepo設定・docs・secret管理方針}
+- {対象機能に関係する既存コード、外部連携、CI/CD、deploy設定、runtime config}
+- {未確認の外部状態がある場合は、未確認前提として扱う}
+
+**設計原則:**
+- repo内実装とユーザー手動作業を分離する
+- secret値、token実値、credential、個人情報、dashboard screenshotのraw値を保存しない
+- 未セットアップの外部依存は fail-closed または blocked として扱い、推測で完了済みにしない
+
 ---
 
 ## アーキテクチャ
@@ -306,6 +316,33 @@ interface ErrorResponse {
 **設定値の根拠**:
 - `{設定項目1}`: {根拠}
 - `{設定項目2}`: {根拠}
+
+---
+
+## 外部依存・手動作業設計
+
+### 実装境界
+
+| 区分 | AIが実装すること | ユーザー手動作業 | 未完了時の挙動 |
+|------|------------------|------------------|----------------|
+| {例: 外部API連携} | {client / adapter / mock / contract test} | {API token発行、secret manager登録、plan有効化} | {live checkをblocked、adapterはmockで検証} |
+| {例: OAuth / webhook} | {callback route、署名検証、fixture test} | {OAuth app作成、redirect URI登録、webhook secret設定} | {認可失敗をfail-closed} |
+| {例: cloud resource / DNS} | {IaC / config / smoke script} | {resource作成承認、DNS/TLS/Access policy設定} | {deploy/live smokeをblocked} |
+| {例: DB migration / data operation} | {migration file、dry-run、rollback plan} | {target env apply承認、backfill/purge実行承認} | {live data mutationは未実行として記録} |
+| {例: mobile/release} | {runtime config、build flag、mock test} | {developer account、証明書、push key、TestFlight/Play Console設定} | {device/release live検証をblocked} |
+
+### Secret / Config 管理
+
+| 名称 | 用途 | 保存先 | AIの扱い | 手動作業 |
+|------|------|--------|----------|----------|
+| `{ENV_OR_SECRET_NAME}` | {用途} | {secret manager / CI secret / runtime secret / local template} | {値は読まない。placeholder名のみ扱う} | {発行・登録・rotation・権限確認} |
+
+### Live Verification / Blocked Handling
+
+- {手動作業が完了している場合にだけ実施するlive verification}
+- {未完了時にblockedとして記録するAC / test / task}
+- {fixture / mock / dry-runで継続できる検証範囲}
+- {AIが未承認で実行しない操作: 本番deploy、live DB migration、課金変更、secret閲覧/登録、manual purgeなど}
 
 ---
 

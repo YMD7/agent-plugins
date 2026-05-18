@@ -1,6 +1,6 @@
 ---
 name: spec
-description: 仕様駆動開発（SDD）フレームワークに基づいてBlueprint・ブループリント・Spec・スペック生成を支援。SDD、仕様駆動開発プロセス、Blueprint作成、ブループリント作成、Spec作成、スペック作成、レビューサイクル管理など、仕様駆動開発の全プロセスをガイド。「ブループリント作って」「スペック作って」「スペック作成して」「スペック生成して」「requirements作って」等のリクエストに対応。
+description: 仕様駆動開発（SDD）フレームワークに基づいてBlueprint・ブループリント・Spec・スペック生成を支援。SDD、仕様駆動開発プロセス、Blueprint作成、ブループリント作成、Spec作成、スペック作成、外部依存・ユーザー手動作業・secret管理を含む事前調査、レビューサイクル管理など、仕様駆動開発の全プロセスをガイド。「ブループリント作って」「スペック作って」「スペック作成して」「スペック生成して」「requirements作って」等のリクエストに対応。
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 ---
 
@@ -78,7 +78,7 @@ SDDプロセスを開始する前に、以下を必ず参照すること。
 作業内容に応じてプロジェクトの `docs/` 配下から関連ドキュメントを検索・参照:
 
 - Blueprint生成 → structure.md, tech.md 重視
-- Requirements生成 → project.md 重視
+- Requirements生成 → project.md 重視。加えて、下記「手動作業プレフライト」を必ず実施し、AIが実行できない作業を requirements.md に明記する
 - Design生成 → tech.md, API仕様 重視。加えて、設計書の「コンポーネントとインターフェース」セクションで参照する既存コードについて、現行の型定義・シグネチャを読み込んで設計書の記述と整合させること。新規作成するものはこの限りではない
 - Tasks生成 → 実装ガイド、Git workflow 重視
 
@@ -89,6 +89,28 @@ Grep -pattern "API|エンドポイント|REST" docs/
 # 例: セキュリティ考慮時
 Glob "docs/**/*security*.md"
 ```
+
+## 手動作業プレフライト
+
+Spec生成時は、対象Scopeを実装するうえでユーザーの手動作業が必要かを必ず調査する。憶測で「既にセットアップ済み」「一般的に存在するはず」と扱ってはならない。
+
+### 調査対象
+
+以下をプロジェクトごとに確認し、該当しないものは「該当なし」と判断した根拠を残す:
+
+- リポジトリ構成: env template、secret管理、CI/CD、IaC、deploy設定、package manager、mobile/native設定、DB migration、docs/runbook
+- 外部サービス: サインアップ、組織/ワークスペース招待、課金/plan有効化、API key/token発行、OAuth app、webhook、DNS/domain/TLS、メール/SMS、決済、LLM provider、analytics、observability、feature flag、storage/queue/search
+- クラウド/権限: IAM role、service account、Access policy、OIDC連携、環境別secret、runtime config、preview/production resource作成
+- ローカル/配布: OS権限、証明書、Apple/Google developer設定、push通知証明書、TestFlight/Play Console、ローカルkeychain、手動QA端末
+- データ/運用: 本番データexport/import、既存ユーザー影響確認、migration apply承認、backfill承認、監査ログ確認、manual purge、法務/セキュリティ承認
+
+### 出力ルール
+
+- requirements.md: 手動作業を要件または制約として明記し、owner role、必要権限、secret/config名、成功条件、blocked AC/test、未完了時の扱いを示す
+- design.md: 手動作業に依存する設計境界、fail-closed/fallback、secret保存先、検証方法、AIが実行しない操作を明記する
+- tasks.md: repo内実装と外部依存を分離する。必要なら `External Track 0` を作り、手動作業を implementation task の hard dependency にしない
+- 手動作業が不要と判断した場合も、確認した根拠と「追加手動作業なし」を該当セクションに短く記録する
+- secret値、token実値、credential、個人情報、dashboard screenshotのraw値はSpec、PR、logs、tests、`.tmp` に保存しない
 
 ## レビュー/フィードバックループ
 
@@ -112,12 +134,13 @@ Specドキュメントのレビューは `/sdd:spec-review` コマンドで実�
 1. **ワークツリー必須**: Spec生成は必ずワークツリー内で作業する。`/sdd:create-worktree sdd B{nn}-S{nn}` でワークツリーを作成してから開始する。すべてのファイル操作はワークツリーパス（`.worktrees/{worktree-name}/...`）で行うこと
 2. **事前読込**: `spec/_custom/steering/` の必須ファイルと `workflow.md` を必ず参照（テンプレート解決ルールに従う）
 3. **動的参照**: タスクに応じてプロジェクトの `docs/` から関連ドキュメントを検索・参照
-4. **順序遵守**: Requirements → Design → Tasks の順で生成
-5. **承認チェック**: 前段階の承認なしに次段階に進まない
-6. **タスク完了の表記**: タスク実行時、完了済みタスクには ✅ を付与する
-7. **PlanMode必須（ドラフト生成・修正の両方）**: Specドキュメントの生成・修正を行う前に必ず `EnterPlanMode` で計画を作成し、ユーザー承認を得てから実行する。詳細は下記「PlanModeゲート」セクションを参照
-8. **都度コミット**: Spec文書の生成・修正・レビューログ記録など、ファイルに変更が生じたら都度コミットする（ワークツリー内で `git -C {worktree}` を使用）
-9. **完了後の統合**: Tasks 承認後、PRを作成し、内容レビューではなく統合前チェックを実行してからマージ → ワークツリークリーンアップの流れで統合する。プロジェクトにPR/チェック/マージ用のコマンドがあればそれを使用し、なければ `/sdd:cleanup-worktree` でクリーンアップする
+4. **手動作業プレフライト**: Requirements生成前に、ユーザー手動作業・外部依存・secret管理・権限・live verificationの必要性を調査し、各Spec文書へ反映する
+5. **順序遵守**: Requirements → Design → Tasks の順で生成
+6. **承認チェック**: 前段階の承認なしに次段階に進まない
+7. **タスク完了の表記**: タスク実行時、完了済みタスクには ✅ を付与する
+8. **PlanMode必須（ドラフト生成・修正の両方）**: Specドキュメントの生成・修正を行う前に必ず `EnterPlanMode` で計画を作成し、ユーザー承認を得てから実行する。詳細は下記「PlanModeゲート」セクションを参照
+9. **都度コミット**: Spec文書の生成・修正・レビューログ記録など、ファイルに変更が生じたら都度コミットする（ワークツリー内で `git -C {worktree}` を使用）
+10. **完了後の統合**: Tasks 承認後、PRを作成し、内容レビューではなく統合前チェックを実行してからマージ → ワークツリークリーンアップの流れで統合する。プロジェクトにPR/チェック/マージ用のコマンドがあればそれを使用し、なければ `/sdd:cleanup-worktree` でクリーンアップする
 
 ### PlanModeゲート
 
@@ -142,6 +165,8 @@ Step 3: 承認された計画に従って実行（ここで初めてファイル
 - 承認前の次段階生成
 - 上流未参照の下流生成
 - 必須ドキュメントの読み飛ばし
+- 手動作業プレフライトを省略した requirements.md / design.md / tasks.md 生成
+- サインアップ、token発行、secret登録、dashboard設定、課金有効化、権限付与、live本番操作をAIが実施済みと推測すること
 - 作業ブランチ/ワークツリー準備は tasks.md に含めない（運用ガイドで管理）
 - **PlanMode無しでのドキュメント書き込み禁止**: `EnterPlanMode` → ユーザー承認を経ずに requirements.md / design.md / tasks.md への書き込み（新規生成・修正）を行ってはならない
 

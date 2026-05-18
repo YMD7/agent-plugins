@@ -51,16 +51,19 @@ description: スペックドキュメントレビュー（Codex統合・トリ�
 **requirements.md**:
 
 - ✅ スコープ定義との機能網羅、ユーザーストーリーの妥当性、ACの計測可能性
+- ✅ 手動作業プレフライトの反映。外部依存、ユーザー手動作業、secret/config、owner role、必要権限、成功条件、blocked AC/test、未完了時の扱いが要件粒度で明確か
 - ❌ 実装方式 → `[Defer:D]`、テスト実装の詳細 → `[Defer:T]`
 
 **design.md**:
 
 - ✅ 要件との整合性、アーキテクチャ適合性、インターフェース設計
+- ✅ 手動作業に依存する設計境界。secret保存先、認可、fail-closed/fallback、live verification、AIが未承認で実行しない操作が設計に落ちているか
 - ❌ タスク粒度・実装手順 → `[Defer:T]`
 
 **tasks.md**:
 
 - ✅ 設計との整合性、タスク粒度・依存関係、規模ガード遵守
+- ✅ repo内実装と外部依存トラックの分離。手動作業が implementation task に混ざっていないか、mock/fixtureで進める範囲とlive verificationでblockedになる範囲が分かれているか
 
 ### 4. Codex レビュー実行
 
@@ -84,6 +87,12 @@ description: スペックドキュメントレビュー（Codex統合・トリ�
 
 ## レビュー観点
 {コンテキストチェーンテーブルに対応するレビュー観点}
+
+## 手動作業・外部依存レビュー観点
+- サインアップ、課金/plan、API token、OAuth app、webhook、DNS/TLS、cloud resource、IAM/service account、CI/CD secret、runtime secret、developer account、証明書、push通知、DB migration、backfill、manual purge、production operation、法務/セキュリティ承認など、AIが物理的に実行できない作業の洗い出し漏れがないか確認する。
+- 必要な手動作業には owner role、必要権限、secret/config/template名、成功条件、blocked AC/test/task、未完了時の扱い、fallback/fail-closed があるか確認する。
+- 手動作業が不要とされている場合は、確認した情報源と根拠が十分か確認する。
+- secret値、token実値、credential、個人情報、dashboard screenshotのraw値が記録されていないか確認する。
 
 ## 指摘の分類
 - [Must-Fix]: このドキュメントで直さないと次工程がブロックされる
