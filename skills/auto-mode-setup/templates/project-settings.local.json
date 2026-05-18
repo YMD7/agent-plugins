@@ -1,0 +1,15 @@
+{
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Project: <TODO: プロジェクト名> — <TODO: 1 行説明（例: a Cloudflare Worker that hosts a remote MCP server）>",
+      "Trusted deployed endpoint: <TODO: 具体的なホスト名。ワイルドカードのマルチテナント領域（*.workers.dev 等）は書かない>",
+      "Routine ops pre-authorized: <TODO: このプロジェクトで頻繁に使う安全な操作。例: wrangler dev, wrangler deploy（low-traffic 開発中なので routine 扱い）>",
+      "Operations requiring explicit user intent: <TODO: 勝手にやってほしくない destructive ops。例: wrangler delete, kv namespace delete, secret put/delete, Cloudflare Access policy 変更>"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  }
+}
