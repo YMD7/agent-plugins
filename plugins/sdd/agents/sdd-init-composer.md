@@ -44,7 +44,7 @@ Code Researcher と Document Researcher の調査結果を統合し、SDD ステ
 
 | steering | リンク先 | コマンド |
 |---|---|---|
-| project.md | ../../docs/product.md | ln -s ../../docs/product.md spec/_custom/steering/project.md |
+| project.md | ../../../docs/product.md | ln -s ../../../docs/product.md spec/_custom/steering/project.md |
 
 ## 新規作成が必要
 
