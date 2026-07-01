@@ -281,6 +281,35 @@ AIが以下を生成:
 
 ---
 
+## Blueprint Completion Audit Gate（archive 前）
+
+Blueprint 配下の全 Scope / Spec が完了し、Blueprint を archive する前に、completion audit gate を実行する。
+この gate は requirements / design / tasks の単体レビューではなく、複数 PR を通した後の全体整合性を確認する。
+
+### 目的
+
+- Blueprint の完了条件が実装・テスト・運用文書に対応していることを確認する
+- 旧 runtime path、fallback、feature flag、legacy docs、未検証 boundary が次工程へ混入しないことを確認する
+- findings を重要度と実装領域リスクに応じて triage し、軽微な提案の過剰修正を避ける
+
+### 実行手段
+
+実行方法はプロジェクトごとに差し替えてよい。
+SDD は archive 前 gate の存在を定義し、具体的なレビュー方法・artifact path・修正フローは project skill / workflow / steering に委ねる。
+
+### 判定
+
+- `Go`: `Archive Blocker` / `Dependent-Blueprint Blocker` なし
+- `Conditional Go`: archive は可能だが、次 Blueprint / dependent Spec 着手前に対応すべき blocker がある
+- `No-Go`: archive 前に修正すべき `Archive Blocker` がある
+
+### 記録
+
+audit artifact には source inventory、findings、triage、Go 判定、次 Blueprint への申し送りを記録する。
+secret、raw user data、raw matched text、raw identifier、local absolute path は記録しない。
+
+---
+
 ## Spec生成手順
 
 ### 0. ワークツリー作成

@@ -221,6 +221,10 @@
       _依存_: TN.5
       _完了条件_:
   - スペックディレクトリ `spec/specs/B{nn}-S{nn}-{slug}/` を `spec/_archive/specs/` に移動
+  - 元になったブループリントディレクトリを移動する前に project-defined completion audit gate を実行し、audit 結果を記録
+  - `Archive Blocker` がなく、`Go` または archive を妨げない `Conditional Go` であることを確認
+  - `No-Go` / `Archive Blocker` がある場合は archive せず、follow-up worktree または Issue に切り出す
+  - `Dependent-Blueprint Blocker` は次 Blueprint / dependent Spec の着手条件として申し送る
   - 元になったブループリントディレクトリは、当該ブループリントの全スコープが完了済みの場合のみ `spec/_archive/blueprints/` に移動
   - 移動後のディレクトリ構造が正しく、全ファイルが含まれていることを確認
   - アーカイブ後、他のドキュメントからの参照リンクが有効であることを確認（grep等で `spec/specs/B{nn}-S{nn}-` や `blueprints/{nn}-` を検索し、リンク切れがないか確認）

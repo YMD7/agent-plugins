@@ -142,6 +142,17 @@ spec-review tasks
 
 > レビューログのフォーマットは `workflow.md` の「レビュー/フィードバックループ」セクションに定義。
 
+## Blueprint archive 前の completion audit gate
+
+Blueprint 配下の全 Scope / Spec が完了し、Blueprint を archive する前に、project-defined な completion audit gate を通す。
+この gate は PR 単位レビューではなく、Blueprint 全体の実装・仕様・テスト・運用整合性を横断確認する。
+
+- 実行方法はプロジェクトごとに差し替えてよい
+- gate は findings triage を含め、軽微な提案を自動で修正対象にしない
+- `Archive Blocker` がある場合は archive へ進まない
+- `Dependent-Blueprint Blocker` がある場合は archive 可否と次 Blueprint 着手条件を分けて記録する
+- `Go` / `Conditional Go` / `No-Go` の判定を artifact に残す
+
 ## 実行規約
 
 ### 必須事項
@@ -156,6 +167,7 @@ spec-review tasks
 8. **計画承認ゲート必須（ドラフト生成・修正の両方）**: Specドキュメントの生成・修正を行う前に必ず計画を作成し、ユーザー承認を得てから実行する。Claude Codeでは `EnterPlanMode` を使い、Codexでは通常応答で計画を提示して明示承認を待つ。詳細は下記「計画承認ゲート」セクションを参照
 9. **都度コミット**: Spec文書の生成・修正・レビューログ記録など、ファイルに変更が生じたら都度コミットする（ワークツリー内で `git -C {worktree}` を使用）
 10. **完了後の統合**: Tasks 承認後、PRを作成し、内容レビューではなく統合前チェックを実行してからマージ → ワークツリークリーンアップの流れで統合する。プロジェクトにPR/チェック/マージ用のコマンドがあればそれを使用し、なければ `/sdd:cleanup-worktree`（Claude Code）または `cleanup-worktree` skill（Codex）でクリーンアップする
+11. **Blueprint archive 前 completion audit gate**: Blueprint を archive する前に、project-defined な completion audit gate を実行する。`Go` または archive を妨げない `Conditional Go` であることを確認してから archive PR に進む
 
 ### 計画承認ゲート
 
