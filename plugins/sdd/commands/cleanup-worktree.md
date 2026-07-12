@@ -8,6 +8,10 @@ allowed-tools: Bash(bash:*), Bash(git worktree:*), Bash(git branch:*), Bash(git 
 
 指定されたワークツリーディレクトリまたはブランチ名を削除する。
 
+## Project context preflight
+
+削除操作の前に plugin bundled `templates/framework/project-context.md` を読み、project-defined なprotected branch、base branch同期、secret symlink回収、dry-run、承認規則を適用する。project context がtrackedなproject cleanup scriptを明示する場合は、plugin scriptの代わりにそのscriptを同じ安全条件で使用する。
+
 **重要**: このコマンドはプラグイン同梱の `${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-worktree.sh` スクリプトを使用する。
 サブモジュールを含むワークツリーも安全に削除でき、削除前に秘匿ファイルを自動回収する。
 

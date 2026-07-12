@@ -8,7 +8,7 @@
 spec/
 ├── _custom/                     # プロジェクト固有設定
 │   ├── README.md                # カスタマイズガイド
-│   ├── steering/                # ステアリング（シンボリックリンク推奨）
+│   ├── steering/                # ステアリング・project workflow（シンボリックリンク推奨）
 │   └── templates/               # テンプレートオーバーライド（オプション）
 ├── _archive/                    # 完了済みBlueprint/Specの保管場所
 ├── blueprints/                  # アクティブなBlueprint
@@ -43,3 +43,5 @@ SDD はプラグインにデフォルトテンプレートを同梱し、プロ�
 | フレームワーク | SDD プラグイン (`templates/`) | ワークフロー定義・テンプレート |
 | プロジェクト設定 | `spec/_custom/` | ステアリング・テンプレートオーバーライド |
 | 統合層 | SDD プラグイン (`skills/`, `commands/`) | Claude Code command と Codex wrapper skill の runtime 差分吸収 |
+
+command実行時のproject固有ルール解決は `templates/framework/project-context.md` に従う。

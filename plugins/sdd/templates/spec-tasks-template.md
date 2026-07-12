@@ -24,13 +24,37 @@
 - サインアップ、課金変更、token発行、secret登録、dashboard設定、live DB migration、本番deploy、manual purge、developer account設定などをAIが未承認で実行しないこと
 - 手動作業が未完了でも進められる mock / fixture / dry-run / contract test と、live verificationでblockedになる項目を分けること
 
+## タスクステータス運用
+
+- `[ ]`: 未着手、実装途中、または追加actionが必要
+- `[x]`: 受け入れ基準が実体として満たされ、依存条件も成立済み
+- `[-]`: blockerと失われる検出範囲を記録済みで、repo内の他作業は継続可能
+- `[!]`: 人手、権限、審査、外部状態変更を次に必要とするmanual gate
+
+`[ ]` / `[-]` / `[!]` は未完了であり、`[x]` だけを完了として扱う。`[-]` / `[!]` には次を記載する:
+
+- `_status_`
+- `_owner_`
+- `_background_`
+- `_artifact_`
+- `_unblock_condition_`
+- `_ai_boundary_`
+
+次の実装候補は、依存先がすべて `[x]` の `[ ]` に限定する。`[-]` / `[!]` はunblock条件が満たされたか、ユーザーが明示的にblocker対応を選んだ場合だけ候補にする。
+
 ---
 
 ## External Track 0: Manual Setup Preflight（必要な場合のみ）
 
 このトラックはユーザーまたは管理者の手動作業を記録する外部依存トラックであり、repo実装PRそのものではない。該当する手動作業がない場合は、確認した根拠と「追加手動作業なし」を短く記載する。
 
-- [ ] E0.1: **{外部サービス / アカウント / plan の利用可否を確認する}**
+- [!] E0.1: **{外部サービス / アカウント / plan の利用可否を確認する}**
+      _status_: deferred
+      _owner_: {service admin / billing admin / maintainer}
+      _background_: {外部サービスの利用可否確認待ち。repo内実装は継続可能だがlive verificationは止まる}
+      _artifact_: {確認結果を保存するartifact path}
+      _unblock_condition_: {plan有効化、組織権限付与、または利用可能性確認}
+      _ai_boundary_: {AIはsecret、token、credentialの実値を扱わず、確認結果だけを記録}
       _要件_: requirements.{AC}
       _依存_: なし
       _Owner_: {service admin / billing admin / maintainer}
@@ -41,7 +65,13 @@
   - {未確認または不足がある場合は blocked として記録する}
   - secret値、token実値、credential、dashboard screenshotのraw値を保存しない
 
-- [ ] E0.2: **{API token / service account / OAuth app / webhook secret を発行・登録する}**
+- [!] E0.2: **{API token / service account / OAuth app / webhook secret を発行・登録する}**
+      _status_: deferred
+      _owner_: {service admin + secret manager admin}
+      _background_: {外部認証資産の発行と安全な登録待ち}
+      _artifact_: {登録完了をsecret非露出で確認するartifact path}
+      _unblock_condition_: {発行、最小権限確認、secret manager登録の完了}
+      _ai_boundary_: {AIはtokenやcredentialを発行・表示せず、手順と状態だけを扱う}
       _要件_: requirements.{AC}
       _依存_: E0.1
       _Owner_: {service admin + secret manager admin}
@@ -52,7 +82,13 @@
   - {検証コマンドがsecret非露出で成功する、または閉じたreasonCodeでfail-closedする}
   - 未完了の場合、該当live verificationをblockedにし、mock / fixture検証だけを完了扱いにする
 
-- [ ] E0.3: **{DNS / cloud resource / runtime config / Access policy を確認する}**
+- [!] E0.3: **{DNS / cloud resource / runtime config / Access policy を確認する}**
+      _status_: blocked
+      _owner_: {infra admin / platform admin}
+      _background_: {infra権限と境界設定の反映待ち}
+      _artifact_: {設定確認結果を保存するartifact path}
+      _unblock_condition_: {DNS、policy、resource、runtime configの反映完了}
+      _ai_boundary_: {AIは未承認のlive infra操作を行わず、差分とblocked範囲だけを記録}
       _要件_: requirements.{AC}
       _依存_: E0.1
       _Owner_: {infra admin / platform admin}
@@ -63,7 +99,13 @@
   - {通常APIとadmin/debug/smoke経路の認可境界を確認する}
   - 未確認の場合、deploy / smoke / live query を blocked として記録する
 
-- [ ] E0.4: **{live data operation / migration / release / device検証を実施またはblocked記録する}**
+- [!] E0.4: **{live data operation / migration / release / device検証を実施またはblocked記録する}**
+      _status_: blocked
+      _owner_: {maintainer / DBA / release admin / QA}
+      _background_: {live運用、データ変更、release、実機検証は外部承認が前提}
+      _artifact_: {承認、実行結果、またはblocked理由を保存するartifact path}
+      _unblock_condition_: {必要権限、rollback手順、対象環境、明示承認の確定}
+      _ai_boundary_: {AIは未承認のmigration、release、purgeを実行しない}
       _要件_: requirements.{AC}
       _依存_: E0.2, E0.3
       _Owner_: {maintainer / DBA / release admin / QA}

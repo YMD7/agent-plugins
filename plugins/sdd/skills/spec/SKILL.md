@@ -63,6 +63,10 @@ SDDフレームワークがプロジェクトにセットアップ済みであ�
 
 SDDプロセスを開始する前に、以下を必ず参照すること。
 
+### Project context（必読）
+
+plugin bundled `templates/framework/project-context.md` に従い、`AGENTS.md` / `CLAUDE.md`、`spec/_custom/steering/*.md`、そこから直接指定された関連 `docs/` を解決する。
+
 ### フレームワークドキュメント（必読）
 
 1. **workflow.md** — 配置ルール、採番、承認フロー、生成手順（テンプレート解決ルールに従い取得）
@@ -159,7 +163,7 @@ Blueprint 配下の全 Scope / Spec が完了し、Blueprint を archive する�
 
 1. **ワークツリー必須**: Spec生成は必ずワークツリー内で作業する。`/sdd:create-worktree sdd B{nn}-S{nn}`（Claude Code）または `create-worktree sdd B{nn}-S{nn}`（Codex）でワークツリーを作成してから開始する。すべてのファイル操作はワークツリーパス（`.worktrees/{worktree-name}/...`）で行うこと
 2. **事前読込**: `spec/_custom/steering/` の必須ファイルと `workflow.md` を必ず参照（テンプレート解決ルールに従う）
-3. **動的参照**: タスクに応じてプロジェクトの `docs/` から関連ドキュメントを検索・参照
+3. **動的参照**: project context の入口に従い、タスクに関係する `docs/` だけを検索・参照
 4. **手動作業プレフライト**: Requirements生成前に、ユーザー手動作業・外部依存・secret管理・権限・live verificationの必要性を調査し、各Spec文書へ反映する
 5. **順序遵守**: Requirements → Design → Tasks の順で生成
 6. **承認チェック**: 前段階の承認なしに次段階に進まない

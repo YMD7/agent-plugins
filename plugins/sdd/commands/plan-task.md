@@ -8,6 +8,10 @@ description: 実装計画を作成する（PlanMode）。ステートファイ�
 
 実装計画をPlanModeで作成するスキル。ステートファイルから文脈を復元し、tasks.md + design.md を基に計画を立てる。
 
+## Project context preflight
+
+計画作成前に plugin bundled `templates/framework/project-context.md` を読み、project-defined な事前調査、規模、security、検証、承認のchecklistを計画へ追加する。
+
 日本語トリガー: プラン、実装計画
 
 ## 使用方法

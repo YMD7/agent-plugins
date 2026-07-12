@@ -25,6 +25,8 @@ spec-review <対象種別>
 
 ## 事前参照
 
+- plugin bundled `templates/framework/project-context.md`
+- `AGENTS.md` / `CLAUDE.md`、`spec/_custom/steering/*.md`、そこから今回のreview target向けに直接指定された `docs/`
 - `workflow.md`（テンプレート解決ルール: `spec/_custom/workflow.md` → plugin bundled `templates/framework/workflow.md`） — レビュー観点・ログフォーマット・レビュー修正ループ定義
 - Codex実行時は `skills/spec-review/SKILL.md` wrapper を入口にし、このcommand本文を正本として読む
 
@@ -47,6 +49,8 @@ spec-review <対象種別>
 | requirements | overview.md → architecture.md → scope.md                   | スコープとの整合性、要件網羅性、ACの明確さ       |
 | design       | 上記 + requirements.md + REVIEW-REQUIREMENTS.md の Defer:D | 要件との整合性、実装可能性、アーキテクチャ適合性 |
 | tasks        | 上記 + design.md + REVIEW-DESIGN.md の Defer:T             | 設計との整合性、タスク粒度、規模ガード遵守       |
+
+project context から今回のtargetに必要なreview checklistを抽出する。独立reviewerがproject fileを直接読めると仮定せず、抽出したchecklist本文をレビュープロンプトへ埋め込む。
 
 ### 3. レビュースコープ制限
 
@@ -139,6 +143,9 @@ codex --ask-for-approval never exec --sandbox read-only -o .tmp/codex-review-res
 - 必要な手動作業には owner role、必要権限、secret/config/template名、成功条件、blocked AC/test/task、未完了時の扱い、fallback/fail-closed があるか確認する。
 - 手動作業が不要とされている場合は、確認した情報源と根拠が十分か確認する。
 - secret値、token実値、credential、個人情報、dashboard screenshotのraw値が記録されていないか確認する。
+
+## Project-specific review requirements
+{AGENTS.md / CLAUDE.md、spec/_custom/steering、直接指定されたdocsから抽出した今回のtarget向けchecklist。該当なしの場合は「追加project checklistなし」と根拠を記載}
 
 ## 指摘の分類
 - [Must-Fix]: このドキュメントで直さないと次工程がブロックされる

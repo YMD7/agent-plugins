@@ -8,6 +8,10 @@ description: ワークツリーとブランチを作成し、秘匿ファイル�
 
 ワークツリーとブランチを作成するコマンド
 
+## Project context preflight
+
+実行前に plugin bundled `templates/framework/project-context.md` を読み、project-defined な worktree base、branch/VCS規則、承認、secret symlink、初期化、検証、workflow-state規則を適用する。
+
 ## 使用方法
 
 ```
@@ -191,7 +195,7 @@ Issue番号: $2
 
 3.1. **ワークツリーベースディレクトリの決定**:
 
-ワークツリーの配置先は `.worktrees/` をデフォルトとする。プロジェクト固有に変更したい場合は、`AGENTS.md` / `CLAUDE.md` に `Worktree Base:` 記述（例: `Worktree Base: custom-worktrees/`）を置けば上書きできる（VCS 判定と同じパターン）。
+ワークツリーの配置先は `.worktrees/` をデフォルトとする。project context に `Worktree Base:` 記述（例: `Worktree Base: custom-worktrees/`）があれば上書きする。
 
 ```
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"

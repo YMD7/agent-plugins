@@ -8,6 +8,10 @@ description: レビュー修正計画を作成する（PlanMode）。ステー�
 
 レビュー修正計画をPlanModeで作成するコマンド。ステートファイルとトリアージ結果から文脈を自動復元する。
 
+## Project context preflight
+
+計画作成前に plugin bundled `templates/framework/project-context.md` を読み、project-defined なtriage、branch sync、修正範囲、PR本文同期、検証規則を適用する。
+
 ## 使用方法
 
 ```
