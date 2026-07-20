@@ -58,3 +58,11 @@ claude plugin install sdd@<marketplace-name> --scope project
 ```
 
 インストール後はセッションを跨いでも自動的に読み込まれる。
+
+## Development
+
+SDD create-worktree executorのテスト:
+
+```bash
+bash plugins/sdd/tests/test-create-worktree.sh
+```
