@@ -1,7 +1,7 @@
 {
   "name": "sdd",
   "description": "Spec-Driven Development framework for Claude Code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "YMD7" },
   "repository": "https://github.com/YMD7/claude-plugins",
   "license": "MIT",

@@ -53,7 +53,7 @@ find "$DIR" ${depth_arg[@]+"${depth_arg[@]}"} -type f \
     -name ".secret*" -o \
     -path "*/.vercel/project.json" \
   \) 2>/dev/null | while IFS= read -r file; do
-  if git check-ignore "$file" >/dev/null 2>&1; then
+  if git -C "$DIR" check-ignore "$file" >/dev/null 2>&1; then
     echo "$file"
   fi
 done
