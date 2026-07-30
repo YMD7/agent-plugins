@@ -9,9 +9,9 @@ Claude Code / Codex 向けプラグインのモノレポ。
 | [sdd](./plugins/sdd/) | Spec-Driven Development framework for Claude Code / Codex |
 | [workflow-graph](./plugins/workflow-graph/) | Deterministic Workflow Graph Core for Claude Code / Codex |
 
-`workflow-graph` 0.2.0は設計契約に加え、exact version解決、materialize、
-readiness、最小lifecycle、単一JSON stateを扱うPhase 1 Coreを配布する。
-executor、scheduler、Project Rule／Adapter実装は含まない。
+`workflow-graph` 0.3.0はPhase 1 Coreに加え、Project Initializationの
+最小Project Profile契約を検証する。executor、scheduler、
+Project Rule／Adapter実装は含まない。
 
 ## Usage
 

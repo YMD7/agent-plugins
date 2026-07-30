@@ -28,6 +28,29 @@ def version_ref(identifier: str, version: str = "1.0.0") -> dict:
     return {"id": identifier, "version": version}
 
 
+def project_profile() -> dict:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "project-profile",
+        "id": "baseline-profile",
+        "version": "1.0.0",
+        "generated_at": TIMESTAMP,
+        "resource_refs": [
+            {
+                "type": "project-rule",
+                "id": "baseline-rules",
+                "version": "1.0.0",
+            },
+            {
+                "type": "capability",
+                "id": "text-processing",
+                "version": "1.0.0",
+            },
+        ],
+        "provenance_refs": [version_ref("initialization-input")],
+    }
+
+
 def field(identifier: str) -> dict:
     return {
         "name": identifier,
@@ -336,6 +359,45 @@ class WorkflowGraphCliTest(unittest.TestCase):
             event_path,
             expected_status=expected_status,
         )
+
+    def test_project_profile_validates_minimal_generic_contract(self) -> None:
+        profile_path = self.write_json("profile.json", project_profile())
+        result = self.run_cli("validate", profile_path)
+        self.assertEqual("valid=project-profile\n", result.stdout)
+
+    def test_project_profile_rejects_invalid_references(self) -> None:
+        unknown_field = project_profile()
+        unknown_field["extra"] = True
+
+        duplicate_resource = project_profile()
+        duplicate_resource["resource_refs"].append(
+            copy.deepcopy(duplicate_resource["resource_refs"][0])
+        )
+
+        invalid_type = project_profile()
+        invalid_type["resource_refs"][0]["type"] = "unknown-resource"
+
+        missing_project_rule = project_profile()
+        missing_project_rule["resource_refs"] = [
+            ref for ref in missing_project_rule["resource_refs"]
+            if ref["type"] != "project-rule"
+        ]
+
+        invalid_provenance = project_profile()
+        invalid_provenance["provenance_refs"] = []
+
+        cases = {
+            "unknown-field": (unknown_field, "未知field"),
+            "duplicate-resource": (duplicate_resource, "重複参照"),
+            "invalid-type": (invalid_type, "未対応"),
+            "missing-project-rule": (missing_project_rule, "Project Rule"),
+            "invalid-provenance": (invalid_provenance, "1件以上"),
+        }
+        for name, (document, expected_error) in cases.items():
+            with self.subTest(name=name):
+                path = self.write_json(f"{name}.json", document)
+                result = self.run_cli("validate", path, expected_status=3)
+                self.assertIn(expected_error, result.stderr)
 
     def test_exact_resolution_is_deterministic_and_pins_versions(self) -> None:
         first_path = self.resolve(name="first.json")

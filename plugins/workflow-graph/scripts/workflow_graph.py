@@ -27,6 +27,15 @@ SEMVER_PATTERN = re.compile(
 )
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 FIELD_TYPES = {"string", "integer", "number", "boolean", "string-list"}
+PROFILE_RESOURCE_TYPES = {
+    "project-rule",
+    "template",
+    "fragment",
+    "skill",
+    "script",
+    "adapter",
+    "capability",
+}
 NODE_STATUSES = {
     "pending",
     "ready",
@@ -175,6 +184,61 @@ def validate_ref_list(value: Any, path: str) -> list[tuple[str, str]]:
     if len(result) != len(set(result)):
         fail(path, "重複参照は使用不可")
     return result
+
+
+def validate_profile_resource_ref(
+    value: Any,
+    path: str,
+) -> tuple[str, str, str]:
+    ref = expect_object(value, path)
+    expect_keys(ref, {"type", "id", "version"}, set(), path)
+    resource_type = expect_string(ref["type"], f"{path}.type")
+    if resource_type not in PROFILE_RESOURCE_TYPES:
+        fail(f"{path}.type", "未対応のProject Profile resource type")
+    return (
+        resource_type,
+        expect_id(ref["id"], f"{path}.id"),
+        expect_semver(ref["version"], f"{path}.version"),
+    )
+
+
+def validate_project_profile(value: Any, path: str = "$") -> None:
+    profile = expect_object(value, path)
+    expect_keys(
+        profile,
+        {
+            "schema_version",
+            "kind",
+            "id",
+            "version",
+            "generated_at",
+            "resource_refs",
+            "provenance_refs",
+        },
+        set(),
+        path,
+    )
+    validate_header(profile, "project-profile", path)
+    expect_id(profile["id"], f"{path}.id")
+    expect_semver(profile["version"], f"{path}.version")
+    expect_timestamp(profile["generated_at"], f"{path}.generated_at")
+
+    refs = expect_list(profile["resource_refs"], f"{path}.resource_refs")
+    resource_refs = [
+        validate_profile_resource_ref(ref, f"{path}.resource_refs[{index}]")
+        for index, ref in enumerate(refs)
+    ]
+    if len(resource_refs) != len(set(resource_refs)):
+        fail(f"{path}.resource_refs", "重複参照は使用不可")
+    if not any(ref[0] == "project-rule" for ref in resource_refs):
+        fail(f"{path}.resource_refs", "Project Rule参照が1件以上必要")
+
+    provenance_refs = validate_ref_list(
+        profile["provenance_refs"],
+        f"{path}.provenance_refs",
+    )
+    if not provenance_refs:
+        fail(f"{path}.provenance_refs", "1件以上の出典参照が必要")
 
 
 def validate_condition(value: Any, path: str) -> str:
@@ -1478,6 +1542,8 @@ def validate_document(value: Any) -> str:
     kind = expect_string(document.get("kind"), "$.kind")
     if kind == "goal-contract":
         validate_goal_contract(document)
+    elif kind == "project-profile":
+        validate_project_profile(document)
     elif kind == "catalog":
         validate_catalog(document)
     elif kind == "resolved-graph":
