@@ -1,0 +1,8 @@
+{
+  "name": "workflow-graph",
+  "description": "Execution-graph architecture for agent workflows",
+  "version": "0.1.0",
+  "author": { "name": "YMD7" },
+  "repository": "https://github.com/YMD7/agent-plugins",
+  "license": "MIT"
+}

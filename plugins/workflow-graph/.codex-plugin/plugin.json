@@ -1,0 +1,29 @@
+{
+  "name": "workflow-graph",
+  "version": "0.1.0",
+  "description": "Execution-graph architecture for agent workflows",
+  "author": {
+    "name": "YMD7"
+  },
+  "repository": "https://github.com/YMD7/agent-plugins",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "execution-graph",
+    "orchestration",
+    "agents"
+  ],
+  "interface": {
+    "displayName": "Workflow Graph",
+    "shortDescription": "Design agent work as a data-dependency graph.",
+    "longDescription": "Model goals, work items, artifacts, lifecycle, and integrations as a reusable execution graph.",
+    "developerName": "YMD7",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Explain how to model this work as a Workflow Graph.",
+      "Review this workflow's Core and extension boundaries.",
+      "Design Project Rules for this workflow."
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-# claude-plugins
+# agent-plugins
 
 Claude Code / Codex 向けプラグインのモノレポ。
 
@@ -7,25 +7,32 @@ Claude Code / Codex 向けプラグインのモノレポ。
 | Plugin | Description |
 |--------|-------------|
 | [sdd](./plugins/sdd/) | Spec-Driven Development framework for Claude Code / Codex |
-| [terse-mode](./plugins/terse-mode/) | Output token reduction mode for Claude Code workflows |
+| [workflow-graph](./plugins/workflow-graph/) | Execution-graph architecture and extension model for Claude Code / Codex |
+
+`workflow-graph` 0.1.0は設計契約のみを配布する初期scaffoldである。
+Skill、runtime、CLIは未実装。
 
 ## Usage
 
 ### Codexで使う（ローカルマーケットプレイス）
 
-Codex向けmanifestは `plugins/sdd/.codex-plugin/plugin.json`、ローカルマーケットプレイスは `.agents/plugins/marketplace.json` に配置している。
+Codex向けmanifestは各pluginの`.codex-plugin/plugin.json`、ローカル
+マーケットプレイスは`.agents/plugins/marketplace.json`に配置している。
 
 ```bash
-codex plugin marketplace add /absolute/path/to/claude-plugins/.agents/plugins
-codex plugin install sdd@ymd7-plugins
+codex plugin marketplace add "$PROJECT_ROOT/.agents/plugins"
+codex plugin install sdd@agent-plugins
+codex plugin install workflow-graph@agent-plugins
 ```
 
-Codexでは `spec` / `init` / `spec-review` / `create-worktree` / `cleanup-worktree` / `fix-review` / `plan-task` skill を使う。
+SDDでは`spec` / `init` / `spec-review` / `create-worktree` /
+`cleanup-worktree` / `fix-review` / `plan-task` skillを使う。
 
 ### Claude Codeで一時的に使う（セッション単位）
 
 ```bash
 claude --plugin-dir ./plugins/sdd
+claude --plugin-dir ./plugins/workflow-graph
 ```
 
 ### Claude Codeプロジェクトに導入する（永続）
@@ -45,6 +52,12 @@ claude --plugin-dir ./plugins/sdd
       "description": "Spec-Driven Development framework for Claude Code",
       "source": "./sdd",
       "category": "development"
+    },
+    {
+      "name": "workflow-graph",
+      "description": "Execution-graph architecture for agent workflows",
+      "source": "./workflow-graph",
+      "category": "development"
     }
   ]
 }
@@ -53,8 +66,9 @@ claude --plugin-dir ./plugins/sdd
 3. ローカルマーケットプレイスを登録し、プラグインをインストールする
 
 ```bash
-claude plugin marketplace add /absolute/path/to/.claude/plugins --scope project
+claude plugin marketplace add "$PROJECT_ROOT/.claude/plugins" --scope project
 claude plugin install sdd@<marketplace-name> --scope project
+claude plugin install workflow-graph@<marketplace-name> --scope project
 ```
 
 インストール後はセッションを跨いでも自動的に読み込まれる。

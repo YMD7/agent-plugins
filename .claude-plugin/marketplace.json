@@ -1,12 +1,18 @@
 {
-  "name": "ymd7-plugins",
-  "description": "Personal Claude Code plugins",
+  "name": "agent-plugins",
+  "description": "Personal agent plugins",
   "owner": { "name": "YMD7" },
   "plugins": [
     {
       "name": "sdd",
       "description": "Spec-Driven Development framework for Claude Code",
       "source": "./plugins/sdd",
+      "category": "development"
+    },
+    {
+      "name": "workflow-graph",
+      "description": "Execution-graph architecture for agent workflows",
+      "source": "./plugins/workflow-graph",
       "category": "development"
     }
   ]

@@ -1,9 +1,9 @@
 {
   "name": "sdd",
   "description": "Spec-Driven Development framework for Claude Code",
-  "version": "0.2.0",
+  "version": "0.2.0+codex.20260730022543",
   "author": { "name": "YMD7" },
-  "repository": "https://github.com/YMD7/claude-plugins",
+  "repository": "https://github.com/YMD7/agent-plugins",
   "license": "MIT",
   "skills": "./skills/",
   "commands": "./commands/"
