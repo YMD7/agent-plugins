@@ -1,7 +1,7 @@
 {
   "name": "workflow-graph",
-  "version": "0.1.0",
-  "description": "Execution-graph architecture for agent workflows",
+  "version": "0.2.0",
+  "description": "Deterministic Core contracts and state for agent workflow graphs",
   "author": {
     "name": "YMD7"
   },
@@ -13,17 +13,21 @@
     "orchestration",
     "agents"
   ],
+  "skills": "./skills/",
   "interface": {
     "displayName": "Workflow Graph",
     "shortDescription": "Design agent work as a data-dependency graph.",
-    "longDescription": "Model goals, work items, artifacts, lifecycle, and integrations as a reusable execution graph.",
+    "longDescription": "Validate, resolve, materialize, and persist goals, nodes, artifacts, and lifecycle state as a reusable execution graph.",
     "developerName": "YMD7",
     "category": "Productivity",
-    "capabilities": [],
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
     "defaultPrompt": [
       "Explain how to model this work as a Workflow Graph.",
-      "Review this workflow's Core and extension boundaries.",
-      "Design Project Rules for this workflow."
+      "Validate these Workflow Graph definitions.",
+      "Materialize this goal as a Workflow Graph run."
     ]
   }
 }

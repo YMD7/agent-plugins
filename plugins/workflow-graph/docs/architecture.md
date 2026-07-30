@@ -17,6 +17,8 @@ Workflow Graphは、エージェントの作業をGoal、Node、Artifact、
 本書はWorkflow Graph Coreの概念上の正本である。プロジェクト固有の選択や
 外部実行基盤との接続は
 [Extension Model](./extension-model.md)で定義する。
+同梱するPhase 1 Coreの具体的なschemaと操作は
+[Core Runtime](./core-runtime.md)で定義する。
 
 ## 2. 非目的
 
@@ -431,7 +433,7 @@ Workflow Graphは「何を、いつ実行するか」を決める。harnessは�
 
 ## 18. 未決事項
 
-次は意図的に未決とする。
+次は本概念設計では意図的に未決とする。
 
 - runtime実装言語
 - Run stateの具体的な保存形式
@@ -445,3 +447,7 @@ Workflow Graphは「何を、いつ実行するか」を決める。harnessは�
 
 これらはruntime実装または導入先の要件が明らかになった時点で、
 独立した設計判断として確定する。
+
+同梱するPhase 1 Coreが採用した実装言語、保存形式、Template／Fragment schema、
+最小操作は[Core Runtime](./core-runtime.md)を正本とする。これはWorkflow Graphの
+全実装へ要求する汎用仕様ではない。

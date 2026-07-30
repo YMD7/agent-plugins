@@ -279,16 +279,23 @@ Workflow Graphは独立したpluginとして配布する。SDDを含む他plugin
 workflow-graph/
 ├─ .codex-plugin/plugin.json
 ├─ .claude-plugin/plugin.json
-└─ docs/
-   ├─ architecture.md
-   └─ extension-model.md
+├─ docs/
+│  ├─ architecture.md
+│  ├─ extension-model.md
+│  └─ core-runtime.md
+├─ skills/core/SKILL.md
+├─ scripts/workflow_graph.py
+└─ tests/test_workflow_graph.py
 ```
 
-この段階では設計契約だけを配布し、runtime、CLI、永続ストア、Adapterを
-実装済みとして宣言しない。
+Phase 1では、Core契約の検証、exact version解決、materialize、状態遷移検証、
+単一JSON fileの保存・読込だけを配布する。Skillは正本へのroutingとscriptの
+薄い実行手順だけを提供する。
 
-将来、Skill、Script、Adapter、runtimeを追加する場合は、実在するcomponentだけを
-manifestへ登録し、Coreと拡張のversion互換性を明示する。
+executor、scheduler、LLM planner、Project Rule／Adapterの完全なinterface、
+Block Handler、remediation、policy操作は実装済みとして宣言しない。
+将来componentを追加する場合も、実在するものだけをmanifestへ登録し、
+Coreと拡張のversion互換性を明示する。
 
 Coreを専用repositoryへ分離する判断は、独立CLIやSDK、独立package、
 異なるrelease cycle、別のcontributorまたはsecurity boundaryが必要になった
