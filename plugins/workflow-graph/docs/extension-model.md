@@ -55,10 +55,11 @@ Project Profileは概念上、次を記録できる必要がある。
 - 永続状態と揮発状態の区別
 - 情報の出典と有効性
 
-Profileはcredentialやraw logを含めない。変化し得る外部状態は、snapshotの
-取得時刻と再検証条件を持つ。
+Profileはcredentialやraw logを含めない。同梱Coreが検証する最小保存schemaは
+[Core Runtime](./core-runtime.md)を正本とする。
 
-具体的な保存schemaは未決である。
+Coreはresourceの種別、安定したID、exact version、provenanceだけを検証する。
+Project Rule本文、Capability、設定、保存先、再検証条件はproject-ownedとする。
 
 ## 4. Project Rule
 
@@ -289,8 +290,8 @@ workflow-graph/
 ```
 
 Phase 1では、Core契約の検証、exact version解決、materialize、状態遷移検証、
-単一JSON fileの保存・読込だけを配布する。Skillは正本へのroutingとscriptの
-薄い実行手順だけを提供する。
+Project Profile検証、単一JSON fileの保存・読込だけを配布する。Skillは正本への
+routingとscriptの薄い実行手順だけを提供する。
 
 executor、scheduler、LLM planner、Project Rule／Adapterの完全なinterface、
 Block Handler、remediation、policy操作は実装済みとして宣言しない。

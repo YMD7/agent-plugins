@@ -291,7 +291,60 @@ Coreは分類や対応を選ばず、remediationを起動しない。
 failureは`code`、`summary`、`evidence`を持つ。Block Reportと別のfieldへ保存し、
 `blocked`と`failed`を混同しない。
 
-## 10. Script
+## 10. Project Profile
+
+Project Initializationの完了契約は、有効な`project-profile` documentである。
+CoreはProfileを検証するが、生成や参照先の探索は行わない。
+
+```json
+{
+  "schema_version": "workflow-graph/v1",
+  "kind": "project-profile",
+  "id": "baseline-profile",
+  "version": "1.0.0",
+  "generated_at": "2026-01-01T00:00:00Z",
+  "resource_refs": [
+    {
+      "type": "project-rule",
+      "id": "baseline-rules",
+      "version": "1.0.0"
+    }
+  ],
+  "provenance_refs": [
+    {
+      "id": "initialization-input",
+      "version": "1.0.0"
+    }
+  ]
+}
+```
+
+`resource_refs`は、resourceの種別、安定したID、exact versionだけを保持する。
+許可する`type`は次のとおり。
+
+- `project-rule`
+- `template`
+- `fragment`
+- `skill`
+- `script`
+- `adapter`
+- `capability`
+
+`resource_refs`は`project-rule`を1件以上含める。同じ`type`、`id`、`version`の
+組み合わせを重複させてはならない。
+
+`provenance_refs`は、初期化に使用したproject-ownedな情報源の安定したIDと
+exact versionだけを保持する。1件以上を必須とし、重複を許可しない。
+
+Profileの`id`、`version`、`generated_at`には共通規則を適用し、未知fieldを
+拒否する。Project Rule本文、resourceの保存先、探索、読込、存在確認、
+意味的な互換性判定はproject-ownedとする。Profile形式の互換性は
+`schema_version`、resource identityの固定はexact versionで表現する。
+
+documentが有効であること自体を完了契約とするため、`status`や`completed`は
+持たない。
+
+## 11. Script
 
 決定論的Coreは`../scripts/workflow_graph.py`にある。
 
@@ -307,6 +360,7 @@ workflow_graph.py show --state <file>
 ```
 
 - `resolve`はcanonical JSONを標準出力または指定fileへ出力する。
+- `validate`はProject Profileを含む対応documentの契約を検証する。
 - `materialize`は新しいRun state fileを保存し、既存fileへの上書きを拒否する。
 - `transition`は検証後に同じRun state fileをatomic replaceする。
 - `show`は保存済みstateを検証し、canonical JSONを標準出力する。

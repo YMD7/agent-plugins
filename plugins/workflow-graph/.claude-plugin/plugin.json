@@ -1,7 +1,7 @@
 {
   "name": "workflow-graph",
   "description": "Deterministic Core contracts and state for agent workflow graphs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": { "name": "YMD7" },
   "repository": "https://github.com/YMD7/agent-plugins",
   "license": "MIT",
