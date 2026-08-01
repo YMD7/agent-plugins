@@ -984,7 +984,7 @@ def validate_failure(value: Any, path: str) -> None:
     expect_string_list(failure["evidence"], f"{path}.evidence")
 
 
-def validate_block(value: Any, path: str) -> None:
+def validate_block(value: Any, path: str) -> dict[str, Any]:
     block = expect_object(value, path)
     expect_keys(
         block,
@@ -1013,6 +1013,83 @@ def validate_block(value: Any, path: str) -> None:
     expect_string(block["safe_workaround"], f"{path}.safe_workaround")
     expect_string(block["permanent_option"], f"{path}.permanent_option")
     expect_string(block["unblock_condition"], f"{path}.unblock_condition")
+    return block
+
+
+def validate_revalidation_results(value: Any, path: str) -> None:
+    results = expect_list(value, path)
+    if not results:
+        fail(path, "1件以上の再検証結果が必要")
+    result_ids: list[str] = []
+    for index, item in enumerate(results):
+        result_path = f"{path}[{index}]"
+        result = expect_object(item, result_path)
+        expect_keys(result, {"id", "passed", "evidence"}, set(), result_path)
+        result_ids.append(expect_id(result["id"], f"{result_path}.id"))
+        if not expect_bool(result["passed"], f"{result_path}.passed"):
+            fail(f"{result_path}.passed", "Node再開にはpassed=trueが必要")
+        expect_string_list(result["evidence"], f"{result_path}.evidence")
+    if len(result_ids) != len(set(result_ids)):
+        fail(path, "重複revalidation resultは使用不可")
+
+
+def validate_resolution(value: Any, path: str) -> dict[str, Any]:
+    resolution = expect_object(value, path)
+    expect_keys(
+        resolution,
+        {
+            "id",
+            "block_id",
+            "adopted_action",
+            "residual_risks",
+            "resume_node_id",
+            "revalidation_results",
+        },
+        set(),
+        path,
+    )
+    expect_id(resolution["id"], f"{path}.id")
+    expect_id(resolution["block_id"], f"{path}.block_id")
+    expect_string(resolution["adopted_action"], f"{path}.adopted_action")
+    expect_string_list(resolution["residual_risks"], f"{path}.residual_risks")
+    expect_id(resolution["resume_node_id"], f"{path}.resume_node_id")
+    validate_revalidation_results(
+        resolution["revalidation_results"],
+        f"{path}.revalidation_results",
+    )
+    return resolution
+
+
+def validate_resolution_history(
+    value: Any,
+    path: str,
+    node_id: str,
+) -> list[dict[str, Any]]:
+    history = expect_list(value, path)
+    entries: list[dict[str, Any]] = []
+    block_ids: list[str] = []
+    resolution_ids: list[str] = []
+    for index, item in enumerate(history):
+        item_path = f"{path}[{index}]"
+        entry = expect_object(item, item_path)
+        expect_keys(entry, {"block", "resolution"}, set(), item_path)
+        block = validate_block(entry["block"], f"{item_path}.block")
+        resolution = validate_resolution(
+            entry["resolution"],
+            f"{item_path}.resolution",
+        )
+        if resolution["block_id"] != block["id"]:
+            fail(f"{item_path}.resolution.block_id", "Blockと不一致")
+        if resolution["resume_node_id"] != node_id:
+            fail(f"{item_path}.resolution.resume_node_id", "Nodeと不一致")
+        block_ids.append(block["id"])
+        resolution_ids.append(resolution["id"])
+        entries.append(entry)
+    if len(block_ids) != len(set(block_ids)):
+        fail(path, "重複Block IDは使用不可")
+    if len(resolution_ids) != len(set(resolution_ids)):
+        fail(path, "重複Resolution IDは使用不可")
+    return entries
 
 
 def validate_status_detail(status: str, value: Any, path: str) -> None:
@@ -1039,7 +1116,7 @@ def validate_node_state(
     expect_keys(
         state,
         {"node_id", "status", "attempt", "detail", "completion_results"},
-        set(),
+        {"resolution_history"},
         path,
     )
     if state["node_id"] != node["id"]:
@@ -1048,13 +1125,23 @@ def validate_node_state(
     if status not in NODE_STATUSES:
         fail(f"{path}.status", "未対応のNode status")
     attempt = expect_int(state["attempt"], f"{path}.attempt")
-    if attempt < 0 or attempt > 1:
-        fail(f"{path}.attempt", "Phase 1では0または1だけを使用可能")
-    if status in {"pending", "ready"} and attempt != 0:
-        fail(f"{path}.attempt", f"{status}では0が必要")
-    if status in {"running", "succeeded", "failed"} and attempt != 1:
-        fail(f"{path}.attempt", f"{status}では1が必要")
+    if attempt < 0:
+        fail(f"{path}.attempt", "0以上が必要")
+    if status == "pending" and attempt != 0:
+        fail(f"{path}.attempt", "pendingでは0が必要")
+    if status in {"running", "succeeded", "failed"} and attempt < 1:
+        fail(f"{path}.attempt", f"{status}では1以上が必要")
     validate_status_detail(status, state["detail"], f"{path}.detail")
+    resolution_history = validate_resolution_history(
+        state.get("resolution_history", []),
+        f"{path}.resolution_history",
+        node["id"],
+    )
+    if status == "blocked" and any(
+        item["block"]["id"] == state["detail"]["id"]
+        for item in resolution_history
+    ):
+        fail(f"{path}.detail.id", "解決済みBlock IDは再利用不可")
     if status == "succeeded":
         validate_results(
             state["completion_results"],
@@ -1098,11 +1185,33 @@ def validate_run_state(value: Any, path: str = "$") -> dict[str, Any]:
             "nodes",
             "artifacts",
         },
-        set(),
+        {"parent_run_id", "remediation_depth", "related_runs"},
         path,
     )
     validate_header(state, "run-state", path)
     expect_id(state["run_id"], f"{path}.run_id")
+    parent_run_id = state.get("parent_run_id")
+    if parent_run_id is not None:
+        expect_id(parent_run_id, f"{path}.parent_run_id")
+        if parent_run_id == state["run_id"]:
+            fail(f"{path}.parent_run_id", "自身をparent Runに指定不可")
+    remediation_depth = expect_int(
+        state.get("remediation_depth", 0),
+        f"{path}.remediation_depth",
+    )
+    if remediation_depth < 0:
+        fail(f"{path}.remediation_depth", "0以上が必要")
+    if parent_run_id is None and remediation_depth != 0:
+        fail(f"{path}.remediation_depth", "depth>0ではparent Runが必要")
+    if parent_run_id is not None and remediation_depth == 0:
+        fail(f"{path}.remediation_depth", "parent Runがある場合は1以上が必要")
+    related_ids = expect_id_list(
+        state.get("related_runs", []),
+        f"{path}.related_runs",
+    )
+    for index, related_id in enumerate(related_ids):
+        if related_id == state["run_id"]:
+            fail(f"{path}.related_runs[{index}]", "自身をrelated Runに指定不可")
     created_at = expect_timestamp(state["created_at"], f"{path}.created_at")
     updated_at = expect_timestamp(state["updated_at"], f"{path}.updated_at")
     if updated_at < created_at:
@@ -1216,11 +1325,17 @@ def materialize_run(
     run_id: str,
     created_at: str,
     initial_artifact_set: dict[str, Any] | None,
+    parent_run_id: str | None = None,
+    remediation_depth: int = 0,
 ) -> dict[str, Any]:
     validate_goal_contract(goal)
     validate_resolved_graph(graph)
     expect_id(run_id, "$.run_id")
     expect_timestamp(created_at, "$.created_at")
+    if parent_run_id is not None:
+        expect_id(parent_run_id, "$.parent_run_id")
+    if remediation_depth < 0:
+        fail("$.remediation_depth", "0以上が必要")
     contract_map = contract_map_for(graph)
     artifacts: list[dict[str, Any]] = []
     if initial_artifact_set is not None:
@@ -1244,6 +1359,7 @@ def materialize_run(
                 "attempt": 0,
                 "detail": None,
                 "completion_results": [],
+                "resolution_history": [],
             }
         )
     run_status = (
@@ -1257,6 +1373,9 @@ def materialize_run(
         "run_id": run_id,
         "created_at": created_at,
         "updated_at": created_at,
+        "parent_run_id": parent_run_id,
+        "remediation_depth": remediation_depth,
+        "related_runs": [],
         "goal_contract": copy.deepcopy(goal),
         "graph": copy.deepcopy(graph),
         "run": {
@@ -1281,9 +1400,11 @@ def validate_transition_event(value: Any, path: str = "$") -> dict[str, Any]:
         "succeed-node": {"node_id", "artifacts", "completion_results"},
         "fail-node": {"node_id", "failure"},
         "block-node": {"node_id", "block"},
+        "resolve-node": {"node_id", "resolution"},
         "succeed-run": {"goal_completion_results", "graph_completion_results"},
         "fail-run": {"failure"},
         "block-run": {"block"},
+        "register-related-run": {"related_run_id"},
     }
     extra = fields.get(event_name)
     if extra is None:
@@ -1311,6 +1432,10 @@ def validate_transition_event(value: Any, path: str = "$") -> dict[str, Any]:
         validate_failure(event["failure"], f"{path}.failure")
     if "block" in event:
         validate_block(event["block"], f"{path}.block")
+    if "resolution" in event:
+        validate_resolution(event["resolution"], f"{path}.resolution")
+    if "related_run_id" in event:
+        expect_id(event["related_run_id"], f"{path}.related_run_id")
     return event
 
 
@@ -1362,7 +1487,7 @@ def apply_node_event(
     if name == "start-node":
         require_status(node_state["status"], {"ready"}, "$.node.status")
         node_state["status"] = "running"
-        node_state["attempt"] = 1
+        node_state["attempt"] += 1
     elif name == "succeed-node":
         require_status(node_state["status"], {"running"}, "$.node.status")
         contract_map = contract_map_for(state["graph"])
@@ -1422,6 +1547,34 @@ def apply_node_event(
         require_status(node_state["status"], {"ready", "running"}, "$.node.status")
         node_state["status"] = "blocked"
         node_state["detail"] = copy.deepcopy(event["block"])
+    elif name == "resolve-node":
+        require_status(node_state["status"], {"blocked"}, "$.node.status")
+        resolution = event["resolution"]
+        if resolution["resume_node_id"] != node["id"]:
+            fail("$.event.resolution.resume_node_id", "eventのNodeと不一致")
+        if resolution["block_id"] != node_state["detail"]["id"]:
+            fail("$.event.resolution.block_id", "現在のBlockと不一致")
+        node_state.setdefault("resolution_history", []).append(
+            {
+                "block": copy.deepcopy(node_state["detail"]),
+                "resolution": copy.deepcopy(resolution),
+            }
+        )
+        node_state["status"] = "ready"
+        node_state["detail"] = None
+
+
+def apply_related_run_event(
+    state: dict[str, Any],
+    event: dict[str, Any],
+) -> None:
+    related_run_id = event["related_run_id"]
+    if related_run_id == state["run_id"]:
+        fail("$.event.related_run_id", "自身をrelated Runに指定不可")
+    related_runs = state.setdefault("related_runs", [])
+    if related_run_id in related_runs:
+        fail("$.event.related_run_id", "重複related Runは登録不可")
+    related_runs.append(related_run_id)
 
 
 def apply_run_event(
@@ -1485,11 +1638,14 @@ def transition_state(
         "succeed-node",
         "fail-node",
         "block-node",
+        "resolve-node",
     }
     if event["event"] in node_events:
         if result["run"]["status"] not in {"pending", "ready", "running"}:
             fail("$.run.status", "停止中または終端RunではNodeを遷移できない")
         apply_node_event(result, event)
+    elif event["event"] == "register-related-run":
+        apply_related_run_event(result, event)
     else:
         apply_run_event(result, event)
     result["updated_at"] = event["occurred_at"]
@@ -1578,6 +1734,8 @@ def build_parser() -> argparse.ArgumentParser:
     materialize_parser.add_argument("--run-id", required=True)
     materialize_parser.add_argument("--created-at", required=True)
     materialize_parser.add_argument("--artifacts")
+    materialize_parser.add_argument("--parent-run-id")
+    materialize_parser.add_argument("--remediation-depth", type=int, default=0)
     materialize_parser.add_argument("--state", required=True)
 
     transition_parser = subparsers.add_parser("transition")
@@ -1610,6 +1768,8 @@ def run_command(args: argparse.Namespace) -> None:
             args.run_id,
             args.created_at,
             artifact_set,
+            args.parent_run_id,
+            args.remediation_depth,
         )
         if Path(args.state).exists():
             fail(args.state, "既存Run stateはmaterializeで上書き不可")
