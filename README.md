@@ -9,9 +9,9 @@ Claude Code / Codex 向けプラグインのモノレポ。
 | [sdd](./plugins/sdd/) | Spec-Driven Development framework for Claude Code / Codex |
 | [workflow-graph](./plugins/workflow-graph/) | Deterministic Workflow Graph Core for Claude Code / Codex |
 
-`workflow-graph` 0.3.0はPhase 1 Coreに加え、Project Initializationの
-最小Project Profile契約を検証する。executor、scheduler、
-Project Rule／Adapter実装は含まない。
+`workflow-graph` 0.4.0は、Project Profile契約に加えて、blocked Nodeの
+明示的な解決・再開履歴と、関連Runの最小metadataを検証する。executor、
+scheduler、Block Handler、Project Rule／Adapter実装は含まない。
 
 ## Usage
 
@@ -83,7 +83,7 @@ SDD create-worktree executorのテスト:
 bash plugins/sdd/tests/test-create-worktree.sh
 ```
 
-Workflow Graph Phase 1 Coreのテスト:
+Workflow Graph Coreのテスト:
 
 ```bash
 python3 -m unittest discover \

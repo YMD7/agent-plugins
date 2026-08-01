@@ -223,11 +223,14 @@ Run stateは`resolved-graph`全体を埋め込む。元のcatalogが更新され
 | field | 内容 |
 | --- | --- |
 | `run_id` | 永続Run ID |
+| `parent_run_id` | 親Run ID。Main Runでは`null` |
+| `remediation_depth` | Main Runを0とする関連Runの深さ |
+| `related_runs` | 明示的に登録した関連Run ID |
 | `created_at`、`updated_at` | 入力されたUTC時刻 |
 | `goal_contract` | 固定したGoal Contract |
 | `graph` | 固定した`resolved-graph` |
 | `run` | Run status、detail、完了検証結果 |
-| `nodes` | Nodeごとのstatus、attempt、detail、完了検証結果 |
+| `nodes` | Nodeごとのstatus、attempt、detail、完了・解決履歴 |
 | `artifacts` | 検証結果を含むArtifact |
 
 保存先は呼び出し側が明示する。Coreは既定directory、DB、migration、
@@ -257,20 +260,26 @@ Phase 1が検証するNode eventは次のとおり。
 | `succeed-node` | `running` → `succeeded` | 全出力Artifact、完了検証結果 |
 | `fail-node` | `running` → `failed` | failure |
 | `block-node` | `ready`／`running` → `blocked` | Block Report |
+| `resolve-node` | `blocked` → `ready` | Resolution Report |
+
 Phase 1が検証するRun eventは次のとおり。
 
 - `succeed-run`
 - `fail-run`
 - `block-run`
 
+`register-related-run`はRun statusを変えず、重複しない関連Run IDを追加する。
+関連Runのmaterialize時は`parent_run_id`と1以上の`remediation_depth`を入力する。
+Coreは関連Runを起動せず、Main Runと子Runへのmetadata入力を原子的に統合しない。
+
 Node statusからRun全体の`blocked`や`failed`を暗黙に集約しない。
 Run eventを明示する。`succeed-run`だけは全Nodeが`succeeded`で、
 GoalとGraphの全完了条件がpassedであることを要求する。
 
-`attempt`はPhase 1では0または1だけを許可する。retry、resume、loop、
-Replanに加え、`waiting`、`cancelled`、`skipped`の具体遷移は実装しない。
-これらの概念上の意味はArchitectureに残し、必要性が明らかになった段階で
-独立して追加する。
+`attempt`は`start-node`ごとに1増える。`resolve-node`は再検証済みのNodeを
+`ready`へ戻し、次の`start-node`を明示的に要求する。Coreはretry回数、
+自動再試行、待機、Replan、中止を決めない。Run全体の`blocked`を解除する
+`resolve-run`も提供しないため、再開可能なBlockはNodeへ記録する。
 
 ## 9. Blockとfailure
 
@@ -287,6 +296,18 @@ Block Reportは状態交換用のデータであり、Block Handlerではない�
 - `unblock_condition`
 
 Coreは分類や対応を選ばず、remediationを起動しない。
+
+Resolution Reportは次を保持する。
+
+- `id`、対応する`block_id`
+- `adopted_action`、`residual_risks`
+- `resume_node_id`
+- 1件以上の`revalidation_results`
+
+各再検証結果は`id`、`passed`、`evidence`を持つ。Coreは全結果が
+`passed=true`の場合だけNodeを再開し、Block Reportとの組をNodeの
+`resolution_history`へ追記する。同じNodeで解決済みのBlock IDと
+Resolution IDは再利用できない。
 
 failureは`code`、`summary`、`evidence`を持つ。Block Reportと別のfieldへ保存し、
 `blocked`と`failed`を混同しない。
@@ -354,7 +375,10 @@ workflow_graph.py resolve --catalog <file> --template-id <id>
                           --template-version <version> [--output <file>]
 workflow_graph.py materialize --goal <file> --resolved <file>
                               --run-id <id> --created-at <UTC>
-                              [--artifacts <file>] --state <file>
+                              [--artifacts <file>]
+                              [--parent-run-id <id>]
+                              [--remediation-depth <number>]
+                              --state <file>
 workflow_graph.py transition --state <file> --event <file>
 workflow_graph.py show --state <file>
 ```
@@ -367,4 +391,4 @@ workflow_graph.py show --state <file>
 - validation errorは終了コード3、I/O errorは終了コード4とする。
 
 scriptはexecutor、scheduler、LLM planner、Human Gate、Project Rule、
-Adapter、policy、remediationを実装しない。
+Adapter、policy、Block Handler、remediation実行を実装しない。

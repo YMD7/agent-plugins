@@ -244,6 +244,23 @@ def block_report() -> dict:
     }
 
 
+def resolution_report(*, block_id: str = "block-one", passed: bool = True) -> dict:
+    return {
+        "id": "resolution-one",
+        "block_id": block_id,
+        "adopted_action": "限定Capabilityで再実行する",
+        "residual_risks": ["同じCapabilityが再び利用不能になる可能性"],
+        "resume_node_id": "produce",
+        "revalidation_results": [
+            {
+                "id": "workaround-available",
+                "passed": passed,
+                "evidence": ["capability-read-back"],
+            }
+        ],
+    }
+
+
 def failure_report() -> dict:
     return {
         "code": "command-failed",
@@ -316,6 +333,9 @@ class WorkflowGraphCliTest(unittest.TestCase):
         *,
         initial_artifact: dict | None,
         name: str = "state.json",
+        run_id: str = "run-one",
+        parent_run_id: str | None = None,
+        remediation_depth: int = 0,
     ) -> Path:
         resolved_path = self.resolve(name=f"{name}.resolved.json")
         goal_path = self.write_json(f"{name}.goal.json", base_goal())
@@ -327,7 +347,7 @@ class WorkflowGraphCliTest(unittest.TestCase):
             "--resolved",
             resolved_path,
             "--run-id",
-            "run-one",
+            run_id,
             "--created-at",
             TIMESTAMP,
             "--state",
@@ -339,6 +359,10 @@ class WorkflowGraphCliTest(unittest.TestCase):
                 artifact_set(initial_artifact),
             )
             arguments.extend(["--artifacts", artifacts_path])
+        if parent_run_id is not None:
+            arguments.extend(["--parent-run-id", parent_run_id])
+        if remediation_depth:
+            arguments.extend(["--remediation-depth", remediation_depth])
         self.run_cli(*arguments)
         return state_path
 
@@ -759,6 +783,204 @@ class WorkflowGraphCliTest(unittest.TestCase):
             blocked_path.parent.glob(".workflow-graph-*.tmp")
         )
         self.assertEqual([], temporary_files)
+
+    def test_block_resolution_resumes_node_and_preserves_history(self) -> None:
+        request = inline_artifact(
+            "request-one",
+            "request",
+            None,
+            "query",
+            "調査する",
+            "request-valid",
+        )
+        state_path = self.materialize(
+            initial_artifact=request,
+            name="resolution.json",
+        )
+        self.transition(
+            state_path,
+            event("start-node", NEXT_TIMESTAMP, node_id="produce"),
+            name="resolution-start",
+        )
+        self.transition(
+            state_path,
+            event(
+                "block-node",
+                NEXT_TIMESTAMP,
+                node_id="produce",
+                block=block_report(),
+            ),
+            name="resolution-block",
+        )
+
+        before = state_path.read_bytes()
+        for name, report, expected_error in [
+            (
+                "wrong-block",
+                resolution_report(block_id="other-block"),
+                "現在のBlock",
+            ),
+            (
+                "failed-revalidation",
+                resolution_report(passed=False),
+                "passed=true",
+            ),
+        ]:
+            with self.subTest(name=name):
+                result = self.transition(
+                    state_path,
+                    event(
+                        "resolve-node",
+                        NEXT_TIMESTAMP,
+                        node_id="produce",
+                        resolution=report,
+                    ),
+                    name=name,
+                    expected_status=3,
+                )
+                self.assertIn(expected_error, result.stderr)
+                self.assertEqual(before, state_path.read_bytes())
+
+        self.transition(
+            state_path,
+            event(
+                "resolve-node",
+                NEXT_TIMESTAMP,
+                node_id="produce",
+                resolution=resolution_report(),
+            ),
+            name="resolution-valid",
+        )
+        resolved = self.read_json(state_path)
+        node = next(
+            item for item in resolved["nodes"] if item["node_id"] == "produce"
+        )
+        self.assertEqual("ready", node["status"])
+        self.assertEqual(1, node["attempt"])
+        self.assertIsNone(node["detail"])
+        self.assertEqual(
+            "block-one",
+            node["resolution_history"][0]["block"]["id"],
+        )
+        self.assertEqual(
+            "resolution-one",
+            node["resolution_history"][0]["resolution"]["id"],
+        )
+
+        self.transition(
+            state_path,
+            event("start-node", NEXT_TIMESTAMP, node_id="produce"),
+            name="resolution-restart",
+        )
+        restarted = self.read_json(state_path)
+        restarted_node = next(
+            item for item in restarted["nodes"] if item["node_id"] == "produce"
+        )
+        self.assertEqual(2, restarted_node["attempt"])
+
+        duplicate = self.transition(
+            state_path,
+            event(
+                "block-node",
+                NEXT_TIMESTAMP,
+                node_id="produce",
+                block=block_report(),
+            ),
+            name="resolution-duplicate-block",
+            expected_status=3,
+        )
+        self.assertIn("再利用不可", duplicate.stderr)
+
+        output = inline_artifact(
+            "analysis-one",
+            "analysis",
+            "produce",
+            "summary",
+            "結果",
+            "analysis-valid",
+            run_id="run-one",
+            created_at=NEXT_TIMESTAMP,
+            artifact_ids=["request-one"],
+        )
+        self.transition(
+            state_path,
+            event(
+                "succeed-node",
+                NEXT_TIMESTAMP,
+                node_id="produce",
+                artifacts=[output],
+                completion_results=[condition_result("produce-done")],
+            ),
+            name="resolution-success",
+        )
+        self.run_cli("validate", state_path)
+
+    def test_related_run_records_parent_and_remediation_depth(self) -> None:
+        main_path = self.materialize(
+            initial_artifact=None,
+            name="related-main.json",
+        )
+        main = self.read_json(main_path)
+        self.assertIsNone(main["parent_run_id"])
+        self.assertEqual(0, main["remediation_depth"])
+        self.assertEqual([], main["related_runs"])
+
+        related_event = event(
+            "register-related-run",
+            NEXT_TIMESTAMP,
+            related_run_id="remediation-one",
+        )
+        self.transition(
+            main_path,
+            related_event,
+            name="register-related",
+        )
+        registered = self.read_json(main_path)
+        self.assertEqual(
+            ["remediation-one"],
+            registered["related_runs"],
+        )
+
+        for name, transition_event, expected_error in [
+            ("duplicate-related", related_event, "重複"),
+            (
+                "self-related",
+                event(
+                    "register-related-run",
+                    NEXT_TIMESTAMP,
+                    related_run_id="run-one",
+                ),
+                "自身",
+            ),
+        ]:
+            with self.subTest(name=name):
+                result = self.transition(
+                    main_path,
+                    transition_event,
+                    name=name,
+                    expected_status=3,
+                )
+                self.assertIn(expected_error, result.stderr)
+
+        child_path = self.materialize(
+            initial_artifact=None,
+            name="related-child.json",
+            run_id="remediation-one",
+            parent_run_id="run-one",
+            remediation_depth=1,
+        )
+        child = self.read_json(child_path)
+        self.assertEqual("run-one", child["parent_run_id"])
+        self.assertEqual(1, child["remediation_depth"])
+
+        legacy = copy.deepcopy(child)
+        del legacy["parent_run_id"]
+        del legacy["remediation_depth"]
+        del legacy["related_runs"]
+        for node in legacy["nodes"]:
+            del node["resolution_history"]
+        legacy_path = self.write_json("legacy-state.json", legacy)
+        self.run_cli("validate", legacy_path)
 
     def test_materialized_state_freezes_graph_and_rejects_payload_extras(self) -> None:
         request = inline_artifact(

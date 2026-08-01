@@ -201,6 +201,10 @@ Block Handlerは`on_block`イベントを受け取り、Project Ruleに従って
 Block HandlerはPolicy拒否を自動的に緩和せず、Replanを権限拡張として
 利用しない。
 
+対応と再検証が完了した場合、HandlerはResolution Reportを作り、Coreの
+`resolve-node`へ渡す。CoreはReportと遷移を検証するだけで、対応の選択、
+再検証の実行、自動retryは行わない。
+
 ## 10. Optional Remediation Run
 
 Remediation Runは任意の拡張であり、Main Goal Runと関連付けられた独立Runとして
@@ -219,7 +223,9 @@ Adapterは、隔離された実行環境の準備、外部作業の開始、状�
 終了処理を担当する。
 
 Coreはparent、related Run、depth、Resolution Reportだけを保持し、
-具体的な起動方法を規定しない。
+具体的な起動方法を規定しない。Main Runへの関連Run登録と子Runのmaterializeは
+独立操作であり、両者をまとめるtransaction、dedupe、depth上限の適用は
+Project RuleとAdapterの責務とする。
 
 ## 11. Project Initialization
 
