@@ -3,6 +3,7 @@ import { lstat, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { loadProjectConfig, resolveGitRoot } from "./project.mjs";
+import { DEFAULT_LIMITS } from "./repository.mjs";
 
 function isReadTool(toolName) {
   return (
@@ -102,6 +103,10 @@ export async function createPreToolUseDecision(event, cwd = process.cwd()) {
     }
     const resolved = await realpath(candidate);
     if (!resolveLocalPath(root, resolved)) {
+      return null;
+    }
+    const details = await stat(resolved);
+    if (details.size > DEFAULT_LIMITS.maxFileBytes) {
       return null;
     }
     const lineCount = await countLinesUntil(resolved, config.lineThreshold);

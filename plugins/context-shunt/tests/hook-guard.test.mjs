@@ -21,6 +21,10 @@ async function createRepository(t) {
   );
   await writeFile(path.join(root, "src", "large.js"), "one\ntwo\nthree\n");
   await writeFile(path.join(root, "src", "small.js"), "one\ntwo\n");
+  await writeFile(
+    path.join(root, "src", "oversized.js"),
+    `${"x".repeat(96 * 1024)}\ntwo\nthree\n`,
+  );
   t.after(async () => rm(root, { recursive: true, force: true }));
   return root;
 }
@@ -46,6 +50,12 @@ test("blocks only configured large full-file reads", async (t) => {
     tool_input: { file_path: "src/small.js" },
   }, root);
   assert.equal(small, null);
+
+  const oversized = await createPreToolUseDecision({
+    tool_name: "Read",
+    tool_input: { file_path: "src/oversized.js" },
+  }, root);
+  assert.equal(oversized, null);
 });
 
 test("does not inspect non-read tool calls or paths outside the Git root", async (t) => {
