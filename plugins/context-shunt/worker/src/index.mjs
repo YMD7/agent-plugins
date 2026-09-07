@@ -213,9 +213,26 @@ function usageFrom(result) {
   };
 }
 
+function modelErrorCode(result) {
+  if (!result || typeof result !== "object") {
+    return "invalid_model_response";
+  }
+  const candidates = [result.error?.code, result.errors?.[0]?.code];
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string" && typeof candidate !== "number") {
+      continue;
+    }
+    const normalized = String(candidate).toLowerCase();
+    if (/^[a-z0-9_-]{1,64}$/.test(normalized)) {
+      return `model_${normalized}`;
+    }
+  }
+  return "invalid_model_response";
+}
+
 function modelTextFrom(result) {
   if (!result || typeof result.response !== "string") {
-    throw new RequestError(502, "invalid_model_response");
+    throw new RequestError(502, modelErrorCode(result));
   }
   return result.response;
 }

@@ -80,6 +80,26 @@ test("uses a minified JSON response when the model appends prose", async () => {
   assert.deepEqual(body.answer.unknowns, []);
 });
 
+test("returns only a safe model error code when inference has no response", async () => {
+  const env = configuredEnv(async () => ({
+    errors: [{ code: 7000, message: "Sensitive provider detail must not be exposed." }],
+  }));
+  const request = new Request("https://worker.example.test/v1/bulk-read", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      question: "What does this module export?",
+      files: [{ path: "src/example.js", content: "export const value = 1;" }],
+    }),
+  });
+
+  const response = await handleRequest(request, env);
+  const body = await response.json();
+
+  assert.equal(response.status, 502);
+  assert.deepEqual(body, { error: { code: "model_7000" } });
+});
+
 test("treats source text as escaped data in the model input", async () => {
   let messages;
   const env = configuredEnv(async (_model, input) => {
