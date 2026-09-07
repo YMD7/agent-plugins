@@ -101,9 +101,9 @@ test("returns only a safe model error code when inference has no response", asyn
 });
 
 test("treats source text as escaped data in the model input", async () => {
-  let messages;
+  let prompt;
   const env = configuredEnv(async (_model, input) => {
-    messages = input.messages;
+    prompt = input.prompt;
     return { response: "not json" };
   });
   const request = new Request("https://worker.example.test/v1/bulk-read", {
@@ -119,7 +119,7 @@ test("treats source text as escaped data in the model input", async () => {
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.match(messages[1].content, /&lt;\/sources&gt;/);
+  assert.match(prompt, /&lt;\/sources&gt;/);
   assert.match(body.answer.unknowns[0], /not structured JSON/);
 });
 
