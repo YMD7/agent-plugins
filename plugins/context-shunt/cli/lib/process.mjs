@@ -39,10 +39,12 @@ export async function runProcess(command, args, options = {}) {
   });
 }
 
-export async function runInteractive(command, args, cwd) {
+export async function runInteractive(command, args, options = {}) {
+  const { cwd, stdout = "inherit", stderr = "inherit" } = options;
+
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
-      stdio: "inherit",
+      stdio: ["inherit", stdout, stderr],
       windowsHide: true,
       cwd,
     });

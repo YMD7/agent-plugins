@@ -109,6 +109,7 @@ async function runAccessCommand(command, args) {
 
   if (command === "login") {
     await login(endpoint);
+    process.stdout.write("Cloudflare Access login completed.\n");
     return;
   }
   const result = await doctor(endpoint);

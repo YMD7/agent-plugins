@@ -31,12 +31,16 @@ Cloudflare account を使わない。
 
 ```bash
 npm test
+npm run test:worker
 node cli/context-shunt.mjs --help
 ```
 
-Worker の deploy 前には、依存を導入したうえで `wrangler types` と Worker runtime
-test を追加・実行し、`wrangler.jsonc` を対象 version の schema で検証する。
-本 PoC は deploy しない。
+Worker の deploy 前には、依存を導入したうえで Worker runtime test を実行し、
+`wrangler.jsonc` を対象 version の schema で検証する。JavaScript 実装のため
+`wrangler types` は不要である。
+runtime test は Workers AI binding をモックするため、Cloudflare account へ接続せず、
+AI usage を発生させない。
+deploy はユーザー承認下の手動作業とし、この CLI は実行しない。
 
 ## プロジェクトへ導入する時
 
@@ -76,7 +80,8 @@ node .agents/context-shunt/cli/context-shunt.mjs \
 
 `bulk-read` は、回答、ファイル別の根拠、不明点、使用モデル、取得できた token 数、
 遅延を JSON で返す。本文、Access credential、OAuth token は標準出力・エラー・
-永続ログへ出力しない。
+永続ログへ出力しない。`login` はブラウザ認証を開始するが、`cloudflared` が標準出力へ
+表示する Access token は破棄する。token をチャットや issue へ貼り付けない。
 
 ## 評価
 

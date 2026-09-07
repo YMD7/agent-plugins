@@ -11,7 +11,9 @@ function assertSuccess(result, message) {
 }
 
 export async function login(endpoint) {
-  const result = await runInteractive("cloudflared", ["access", "login", endpoint]);
+  const result = await runInteractive("cloudflared", ["access", "login", endpoint], {
+    stdout: "ignore",
+  });
   if (result.code !== 0) {
     throw new CliError("Cloudflare Access login did not complete.");
   }
