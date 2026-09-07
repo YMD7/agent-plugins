@@ -44,6 +44,7 @@ test("returns a bounded structured summary and disables gateway logging and cach
   assert.equal(response.status, 200);
   assert.equal(body.answer.evidence[0].path, "src/example.js");
   assert.deepEqual(body.usage, { inputTokens: 12, outputTokens: 8 });
+  assert.equal(call[1].response_format.type, "json_schema");
   assert.equal(call[2].gateway.collectLog, false);
   assert.equal(call[2].gateway.skipCache, true);
 });
@@ -100,10 +101,41 @@ test("returns only a safe model error code when inference has no response", asyn
   assert.deepEqual(body, { error: { code: "model_7000" } });
 });
 
+test("normalizes a JSON Mode object response", async () => {
+  const env = configuredEnv(async () => ({
+    response: {
+      summary: "The selected file exports one value.",
+      evidence: [{
+        path: "src/example.js",
+        location: "line 1",
+        reason: "export declaration",
+        excerpt: "export const value = 1;",
+      }],
+      unknowns: [],
+    },
+  }));
+  const request = new Request("https://worker.example.test/v1/bulk-read", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      question: "What does this module export?",
+      files: [{ path: "src/example.js", content: "export const value = 1;" }],
+    }),
+  });
+
+  const response = await handleRequest(request, env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.answer.summary, "The selected file exports one value.");
+  assert.equal(body.answer.evidence[0].path, "src/example.js");
+  assert.deepEqual(body.answer.unknowns, []);
+});
+
 test("treats source text as escaped data in the model input", async () => {
-  let prompt;
+  let messages;
   const env = configuredEnv(async (_model, input) => {
-    prompt = input.prompt;
+    messages = input.messages;
     return { response: "not json" };
   });
   const request = new Request("https://worker.example.test/v1/bulk-read", {
@@ -119,7 +151,7 @@ test("treats source text as escaped data in the model input", async () => {
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.match(prompt, /&lt;\/sources&gt;/);
+  assert.match(messages[1].content, /&lt;\/sources&gt;/);
   assert.match(body.answer.unknowns[0], /not structured JSON/);
 });
 
