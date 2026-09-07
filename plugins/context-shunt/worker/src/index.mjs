@@ -176,17 +176,48 @@ function removeCodeFence(value) {
   return trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
 }
 
+function parseFirstJsonObject(value) {
+  for (let start = value.indexOf("{"); start !== -1; start = value.indexOf("{", start + 1)) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = start; index < value.length; index += 1) {
+      const character = value[index];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (character === "\\") {
+          escaped = true;
+        } else if (character === "\"") {
+          inString = false;
+        }
+        continue;
+      }
+      if (character === "\"") {
+        inString = true;
+      } else if (character === "{") {
+        depth += 1;
+      } else if (character === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          try {
+            return JSON.parse(value.slice(start, index + 1));
+          } catch {
+            break;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function parseModelJson(value) {
   const normalized = removeCodeFence(value);
   try {
     return JSON.parse(normalized);
   } catch {
-    const firstLine = normalized.split(/\r?\n/, 1)[0].trim();
-    try {
-      return JSON.parse(firstLine);
-    } catch {
-      return null;
-    }
+    return parseFirstJsonObject(normalized);
   }
 }
 
@@ -296,7 +327,7 @@ export async function handleRequest(request, env) {
           json_schema: RESPONSE_SCHEMA,
         },
         temperature: 0.1,
-        max_tokens: 900,
+        max_tokens: 400,
       },
       {
         gateway: {

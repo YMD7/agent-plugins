@@ -49,7 +49,7 @@ test("returns a bounded structured summary and disables gateway logging and cach
   assert.equal(call[2].gateway.skipCache, true);
 });
 
-test("uses a minified JSON response when the model appends prose", async () => {
+test("uses a JSON response surrounded by model prose", async () => {
   const structured = JSON.stringify({
     summary: "The selected file exports one value.",
     evidence: [{
@@ -61,7 +61,7 @@ test("uses a minified JSON response when the model appends prose", async () => {
     unknowns: [],
   });
   const env = configuredEnv(async () => ({
-    response: `${structured}\n\nAdditional prose that must be ignored.`,
+    response: `Preamble that must be ignored.\n${structured}\nAdditional prose that must be ignored.`,
   }));
   const request = new Request("https://worker.example.test/v1/bulk-read", {
     method: "POST",
