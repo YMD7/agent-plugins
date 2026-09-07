@@ -1,0 +1,18 @@
+{
+  "description": "Block only configured large, full-file read calls and direct the agent to Context Shunt.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Read|read_file|mcp__.*(?:read|Read).*)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.agents/context-shunt/cli/context-shunt.mjs\" guard",
+            "timeout": 2,
+            "statusMessage": "Checking large full-file read"
+          }
+        ]
+      }
+    ]
+  }
+}
