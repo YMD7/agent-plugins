@@ -3,6 +3,7 @@ import { lstat, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { loadProjectConfig, resolveGitRoot } from "./project.mjs";
+import { runProcess } from "./process.mjs";
 import { collectApprovedFiles, DEFAULT_LIMITS } from "./repository.mjs";
 
 function isReadTool(toolName) {
@@ -32,6 +33,47 @@ function resolveLocalPath(root, filePath) {
     return null;
   }
   return candidate;
+}
+
+function isPathInside(root, candidate) {
+  const relativePath = path.relative(root, candidate);
+  return (
+    relativePath !== "" &&
+    relativePath !== ".." &&
+    !relativePath.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relativePath)
+  );
+}
+
+async function resolveWorktreeRoot(root, candidate) {
+  const result = await runProcess(
+    "git",
+    ["-C", root, "worktree", "list", "--porcelain", "-z"],
+    { input: "" },
+  );
+  if (result.code !== 0 || result.exceeded) {
+    return null;
+  }
+
+  let closestRoot = null;
+  for (const attribute of result.stdout.split("\0")) {
+    if (!attribute.startsWith("worktree ")) {
+      continue;
+    }
+    let worktree;
+    try {
+      worktree = await realpath(attribute.slice("worktree ".length));
+    } catch {
+      continue;
+    }
+    if (
+      isPathInside(worktree, candidate) &&
+      (!closestRoot || worktree.length > closestRoot.length)
+    ) {
+      closestRoot = worktree;
+    }
+  }
+  return closestRoot;
 }
 
 async function countLinesUntil(filePath, threshold) {
@@ -79,10 +121,42 @@ export async function createPreToolUseDecision(event, cwd = process.cwd()) {
     return null;
   }
 
+  let launchRoot;
+  try {
+    launchRoot = await resolveGitRoot(cwd);
+  } catch {
+    return null;
+  }
+
+  const candidate = path.resolve(launchRoot, filePath);
+  let resolvedCandidate;
+  try {
+    const entry = await lstat(candidate);
+    if (!entry.isFile() || entry.isSymbolicLink()) {
+      return null;
+    }
+    resolvedCandidate = await realpath(candidate);
+  } catch {
+    return null;
+  }
+
   let root;
+  try {
+    root = await resolveWorktreeRoot(launchRoot, resolvedCandidate);
+  } catch {
+    return null;
+  }
+  if (!root) {
+    return null;
+  }
+
+  const localPath = resolveLocalPath(root, resolvedCandidate);
+  if (!localPath) {
+    return null;
+  }
+
   let config;
   try {
-    root = await resolveGitRoot(cwd);
     config = await loadProjectConfig(root, { allowMissing: true });
   } catch {
     return null;
@@ -91,17 +165,8 @@ export async function createPreToolUseDecision(event, cwd = process.cwd()) {
     return null;
   }
 
-  const candidate = resolveLocalPath(root, filePath);
-  if (!candidate) {
-    return null;
-  }
-
   try {
-    const entry = await lstat(candidate);
-    if (!entry.isFile() || entry.isSymbolicLink()) {
-      return null;
-    }
-    const resolved = await realpath(candidate);
+    const resolved = localPath;
     if (!resolveLocalPath(root, resolved)) {
       return null;
     }

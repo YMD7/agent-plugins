@@ -29,7 +29,10 @@ local: they are usually faster and preserve useful detail.
 
 ## Read a large source set
 
-Run the version pinned in the project:
+Run the version pinned in the Git root that owns the selected files. Set the
+command workdir to that root. When Codex starts from a primary worktree and
+reads a linked worktree by absolute path, use the linked worktree as
+`$PROJECT_ROOT` for both the CLI and its paths:
 
 ```bash
 node "$PROJECT_ROOT/.agents/context-shunt/cli/context-shunt.mjs" \

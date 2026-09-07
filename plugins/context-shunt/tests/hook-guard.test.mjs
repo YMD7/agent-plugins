@@ -13,6 +13,8 @@ const execFileAsync = promisify(execFile);
 async function createRepository(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), "context-shunt-hook-"));
   await execFileAsync("git", ["-C", root, "init", "--quiet"]);
+  await execFileAsync("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
+  await execFileAsync("git", ["-C", root, "config", "user.name", "Context Shunt Test"]);
   await mkdir(path.join(root, ".agents", "context-shunt"), { recursive: true });
   await mkdir(path.join(root, "src"));
   await writeFile(
@@ -38,9 +40,27 @@ async function createRepository(t) {
     "src/small.js",
     "src/oversized.js",
     "src/binary.js",
+    ".agents/context-shunt/config.json",
+    ".gitignore",
   ]);
+  await execFileAsync("git", ["-C", root, "commit", "--quiet", "-m", "Test fixture"]);
   t.after(async () => rm(root, { recursive: true, force: true }));
   return root;
+}
+
+async function createWorktree(root) {
+  const worktree = `${root} worktree`;
+  await execFileAsync("git", [
+    "-C",
+    root,
+    "worktree",
+    "add",
+    "--quiet",
+    "-b",
+    "test-worktree",
+    worktree,
+  ]);
+  return worktree;
 }
 
 test("blocks only configured large full-file reads", async (t) => {
@@ -93,4 +113,25 @@ test("does not inspect non-read tool calls or paths outside the Git root", async
 
   assert.equal(write, null);
   assert.equal(outside, null);
+});
+
+test("uses the target worktree configuration for absolute file paths", async (t) => {
+  const root = await createRepository(t);
+  const worktree = await createWorktree(root);
+  try {
+    await writeFile(
+      path.join(root, ".agents", "context-shunt", "config.json"),
+      JSON.stringify({ endpoint: "https://context-shunt.example.test", lineThreshold: null }),
+    );
+
+    const blocked = await createPreToolUseDecision({
+      tool_name: "Read",
+      tool_input: { file_path: path.join(worktree, "src", "large.js") },
+    }, root);
+
+    assert.equal(blocked.hookSpecificOutput.permissionDecision, "deny");
+    assert.match(blocked.hookSpecificOutput.permissionDecisionReason, /3 lines; threshold 2/);
+  } finally {
+    await execFileAsync("git", ["-C", root, "worktree", "remove", "--force", worktree]);
+  }
 });

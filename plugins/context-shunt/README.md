@@ -58,16 +58,21 @@ deploy はユーザー承認下の手動作業とし、この CLI は実行し�
    `.codex/hooks.json` に統合する。Claude Code は
    `adapters/claude/settings.json` の同じ hook を project-local
    `.claude/settings.json` に統合する。既存 hook を置換しない。
-4. どちらの hook も project root の version-pinned CLI を `node` で実行する。
+4. どちらの hook も起動projectの version-pinned CLI を `node` で実行する。
    初回は hook 定義をレビューして信頼済みにする。
 5. `node .agents/context-shunt/cli/context-shunt.mjs doctor` を実行し、必要な時だけ
    ユーザー承認のもと `login` で Access OAuth を行う。
 
 Codex hook は直接読取を要約へ置換できないため、Context Shuntが受け付け可能な
 大きな範囲指定なし read だけを拒否して CLI を案内する。96 KiBを超えるファイルは
-CLIが受け付けないため、hookは拒否せず、`rg`と範囲指定readで調べる。`offset`または
+CLIが受け付けないため、hookは拒否せず、`rg`と範囲指定readで調べる。起動projectと
+同じGitリポジトリに登録されたworktreeの絶対パスは、そのworktree自身の設定と追跡状態で
+判定する。関係ないrepositoryや未登録のパスは対象にしない。`offset`または
 `limit`を伴う read、編集、`rg`などの絞込み検索は妨げない。`lineThreshold`が未設定の
 場合、hookは何も拒否しない。
+
+要約CLIも、選択したファイルを所有するworktreeを実行rootにする。起動rootと異なる
+linked worktreeのファイルを選ぶ場合は、そのworktreeのCLIと設定を使う。
 
 ## CLI
 
