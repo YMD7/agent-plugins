@@ -10,7 +10,7 @@ export default defineConfig({
         compatibilityFlags: ["nodejs_compat"],
         bindings: {
           AI_GATEWAY_ID: "context-shunt",
-          MODEL: "@cf/meta/llama-3.1-8b-instruct-fast",
+          MODEL: "@cf/zai-org/glm-5.3-flash",
         },
       },
     }),

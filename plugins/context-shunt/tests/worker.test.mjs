@@ -6,7 +6,7 @@ import { handleRequest } from "../worker/src/index.mjs";
 function configuredEnv(run) {
   return {
     AI_GATEWAY_ID: "context-shunt",
-    MODEL: "@cf/meta/llama-3.1-8b-instruct-fast",
+    MODEL: "@cf/zai-org/glm-5.3-flash",
     AI: { run },
   };
 }
@@ -44,7 +44,8 @@ test("returns a bounded structured summary and disables gateway logging and cach
   assert.equal(response.status, 200);
   assert.equal(body.answer.evidence[0].path, "src/example.js");
   assert.deepEqual(body.usage, { inputTokens: 12, outputTokens: 8 });
-  assert.equal(call[1].response_format.type, "json_schema");
+  assert.equal(Object.hasOwn(call[1], "response_format"), false);
+  assert.match(call[1].messages[0].content, /exactly one JSON object/);
   assert.equal(call[2].gateway.collectLog, false);
   assert.equal(call[2].gateway.skipCache, true);
 });
@@ -101,7 +102,7 @@ test("returns only a safe model error code when inference has no response", asyn
   assert.deepEqual(body, { error: { code: "model_7000" } });
 });
 
-test("normalizes a JSON Mode object response", async () => {
+test("normalizes an object model response", async () => {
   const env = configuredEnv(async () => ({
     response: {
       summary: "The selected file exports one value.",
@@ -130,6 +131,40 @@ test("normalizes a JSON Mode object response", async () => {
   assert.equal(body.answer.summary, "The selected file exports one value.");
   assert.equal(body.answer.evidence[0].path, "src/example.js");
   assert.deepEqual(body.answer.unknowns, []);
+});
+
+test("normalizes an OpenAI-compatible chat completion", async () => {
+  const env = configuredEnv(async () => ({
+    choices: [{
+      message: {
+        content: JSON.stringify({
+          summary: "The selected file exports one value.",
+          evidence: [{
+            path: "src/example.js",
+            location: "line 1",
+            reason: "export declaration",
+            excerpt: "export const value = 1;",
+          }],
+          unknowns: [],
+        }),
+      },
+    }],
+  }));
+  const request = new Request("https://worker.example.test/v1/bulk-read", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      question: "What does this module export?",
+      files: [{ path: "src/example.js", content: "export const value = 1;" }],
+    }),
+  });
+
+  const response = await handleRequest(request, env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.answer.summary, "The selected file exports one value.");
+  assert.equal(body.answer.evidence[0].path, "src/example.js");
 });
 
 test("treats source text as escaped data in the model input", async () => {
