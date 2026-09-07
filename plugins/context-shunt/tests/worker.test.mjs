@@ -48,6 +48,38 @@ test("returns a bounded structured summary and disables gateway logging and cach
   assert.equal(call[2].gateway.skipCache, true);
 });
 
+test("uses a minified JSON response when the model appends prose", async () => {
+  const structured = JSON.stringify({
+    summary: "The selected file exports one value.",
+    evidence: [{
+      path: "src/example.js",
+      location: "line 1",
+      reason: "export declaration",
+      excerpt: "export const value = 1;",
+    }],
+    unknowns: [],
+  });
+  const env = configuredEnv(async () => ({
+    response: `${structured}\n\nAdditional prose that must be ignored.`,
+  }));
+  const request = new Request("https://worker.example.test/v1/bulk-read", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      question: "What does this module export?",
+      files: [{ path: "src/example.js", content: "export const value = 1;" }],
+    }),
+  });
+
+  const response = await handleRequest(request, env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.answer.summary, "The selected file exports one value.");
+  assert.equal(body.answer.evidence[0].path, "src/example.js");
+  assert.deepEqual(body.answer.unknowns, []);
+});
+
 test("treats source text as escaped data in the model input", async () => {
   let messages;
   const env = configuredEnv(async (_model, input) => {

@@ -157,18 +157,27 @@ function removeCodeFence(value) {
   return trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
 }
 
+function parseModelJson(value) {
+  const normalized = removeCodeFence(value);
+  try {
+    return JSON.parse(normalized);
+  } catch {
+    const firstLine = normalized.split(/\r?\n/, 1)[0].trim();
+    try {
+      return JSON.parse(firstLine);
+    } catch {
+      return null;
+    }
+  }
+}
+
 function formatAnswer(modelText, files) {
   const fallback = {
     summary: limitText(modelText, MAX_MODEL_TEXT_LENGTH) || "The model returned no textual response.",
     evidence: [],
     unknowns: ["The model response was not structured JSON; verify with targeted reads."],
   };
-  let parsed;
-  try {
-    parsed = JSON.parse(removeCodeFence(modelText));
-  } catch {
-    return fallback;
-  }
+  const parsed = parseModelJson(modelText);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return fallback;
   }
