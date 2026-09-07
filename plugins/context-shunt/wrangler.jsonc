@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "context-shunt",
+  "main": "worker/src/index.mjs",
+  "compatibility_date": "2026-09-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "ai": {
+    "binding": "AI"
+  },
+  "vars": {
+    "AI_GATEWAY_ID": "context-shunt",
+    "MODEL": "@cf/zai-org/glm-5.3-flash"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 0
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0
+    }
+  }
+}

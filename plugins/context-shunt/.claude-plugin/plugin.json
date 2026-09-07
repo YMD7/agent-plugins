@@ -1,0 +1,11 @@
+{
+  "name": "context-shunt",
+  "version": "0.1.0",
+  "description": "Route large, explicit source reads to a bounded Cloudflare Worker summary.",
+  "author": {
+    "name": "YMD7"
+  },
+  "repository": "https://github.com/YMD7/agent-plugins",
+  "license": "MIT",
+  "skills": "./skills/"
+}

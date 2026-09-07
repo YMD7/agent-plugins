@@ -1,0 +1,31 @@
+{
+  "name": "context-shunt",
+  "version": "0.1.0",
+  "description": "Route large, explicit source reads to a bounded Cloudflare Worker summary.",
+  "author": {
+    "name": "YMD7"
+  },
+  "repository": "https://github.com/YMD7/agent-plugins",
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "source-reading",
+    "cloudflare",
+    "token-efficiency"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Context Shunt",
+    "shortDescription": "Summarize large, explicit source reads outside the main context.",
+    "longDescription": "Uses a project-local CLI and Cloudflare Worker to return a bounded, structured source summary.",
+    "developerName": "YMD7",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Use Context Shunt to investigate these large source files.",
+      "Explain when Context Shunt is appropriate for this repository."
+    ]
+  }
+}
