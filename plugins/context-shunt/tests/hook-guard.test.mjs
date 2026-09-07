@@ -25,6 +25,20 @@ async function createRepository(t) {
     path.join(root, "src", "oversized.js"),
     `${"x".repeat(96 * 1024)}\ntwo\nthree\n`,
   );
+  await writeFile(path.join(root, "src", "untracked.js"), "one\ntwo\nthree\n");
+  await writeFile(path.join(root, ".gitignore"), "src/ignored.js\n");
+  await writeFile(path.join(root, "src", "ignored.js"), "one\ntwo\nthree\n");
+  await writeFile(path.join(root, ".env.large"), "one\ntwo\nthree\n");
+  await writeFile(path.join(root, "src", "binary.js"), Buffer.from("one\ntwo\nthree\n\0"));
+  await execFileAsync("git", [
+    "-C",
+    root,
+    "add",
+    "src/large.js",
+    "src/small.js",
+    "src/oversized.js",
+    "src/binary.js",
+  ]);
   t.after(async () => rm(root, { recursive: true, force: true }));
   return root;
 }
@@ -56,6 +70,14 @@ test("blocks only configured large full-file reads", async (t) => {
     tool_input: { file_path: "src/oversized.js" },
   }, root);
   assert.equal(oversized, null);
+
+  for (const filePath of ["src/untracked.js", "src/ignored.js", ".env.large", "src/binary.js"]) {
+    const unsupported = await createPreToolUseDecision({
+      tool_name: "Read",
+      tool_input: { file_path: filePath },
+    }, root);
+    assert.equal(unsupported, null);
+  }
 });
 
 test("does not inspect non-read tool calls or paths outside the Git root", async (t) => {
