@@ -63,9 +63,11 @@ deploy はユーザー承認下の手動作業とし、この CLI は実行し�
 5. `node .agents/context-shunt/cli/context-shunt.mjs doctor` を実行し、必要な時だけ
    ユーザー承認のもと `login` で Access OAuth を行う。
 
-Codex hook は直接読取を要約へ置換できないため、大きな範囲指定なし read だけを
-拒否して CLI を案内する。`offset` または `limit` を伴う read、編集、`rg` などの
-絞込み検索は妨げない。`lineThreshold` が未設定の場合、hook は何も拒否しない。
+Codex hook は直接読取を要約へ置換できないため、Context Shuntが受け付け可能な
+大きな範囲指定なし read だけを拒否して CLI を案内する。96 KiBを超えるファイルは
+CLIが受け付けないため、hookは拒否せず、`rg`と範囲指定readで調べる。`offset`または
+`limit`を伴う read、編集、`rg`などの絞込み検索は妨げない。`lineThreshold`が未設定の
+場合、hookは何も拒否しない。
 
 ## CLI
 

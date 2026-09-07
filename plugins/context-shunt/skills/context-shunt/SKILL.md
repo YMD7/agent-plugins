@@ -20,6 +20,8 @@ local: they are usually faster and preserve useful detail.
 - Confirm that `.agents/context-shunt/config.json` has a real HTTPS endpoint and
   a positive `lineThreshold` chosen from the project's baseline measurement.
 - State a focused question and list only the files needed to answer it.
+- Use local search and ranged reads for files larger than 96 KiB. The CLI
+  rejects those files, and the full-file guard leaves them readable.
 - Do not submit untracked, ignored, generated, secret, credential, or binary
   files. The CLI rejects them, but selecting them is still unnecessary risk.
 - If Cloudflare Access login is required, explain that browser OAuth will open
