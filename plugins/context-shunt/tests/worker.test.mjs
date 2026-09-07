@@ -45,7 +45,10 @@ test("returns a bounded structured summary and disables gateway logging and cach
   assert.equal(body.answer.evidence[0].path, "src/example.js");
   assert.deepEqual(body.usage, { inputTokens: 12, outputTokens: 8 });
   assert.equal(Object.hasOwn(call[1], "response_format"), false);
-  assert.match(call[1].messages[0].content, /exactly one JSON object/);
+  assert.match(call[1].messages[0].content, /exactly one complete JSON object/);
+  assert.match(call[1].messages[0].content, /at most 4 evidence items/);
+  assert.equal(call[1].reasoning_effort, "low");
+  assert.equal(call[1].max_completion_tokens, 800);
   assert.equal(call[2].gateway.collectLog, false);
   assert.equal(call[2].gateway.skipCache, true);
 });
