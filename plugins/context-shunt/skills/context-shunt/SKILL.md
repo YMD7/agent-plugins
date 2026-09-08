@@ -20,6 +20,8 @@ local: they are usually faster and preserve useful detail.
 - Confirm that `.agents/context-shunt/config.json` has a real HTTPS endpoint and
   a positive `lineThreshold` chosen from the project's baseline measurement.
 - State a focused question and list only the files needed to answer it.
+- Prefer one large file per request. Combine files only when a focused question
+  requires their relationship and the total scope remains small.
 - Use local search and ranged reads for files larger than 96 KiB. The CLI
   rejects those files, and the full-file guard leaves them readable.
 - Do not submit untracked, ignored, generated, secret, credential, or binary
@@ -43,6 +45,10 @@ Use the JSON result as an orientation aid. Verify important claims with narrow,
 ranged local reads before editing code or making a security-sensitive decision.
 If the result lists an unknown, perform the smallest targeted follow-up read;
 do not resend an entire repository.
+
+If `complete` is `false`, narrow the question or reduce the request to one file
+and retry once. If that retry is also incomplete, stop using Context Shunt for
+the question and switch to `rg` plus the smallest useful ranged reads.
 
 ## Login and diagnosis
 

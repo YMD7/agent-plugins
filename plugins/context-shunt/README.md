@@ -85,8 +85,10 @@ node .agents/context-shunt/cli/context-shunt.mjs \
   bulk-read --question "この層の責務は何か" --paths src/a.ts src/b.ts
 ```
 
-`bulk-read` は、回答、ファイル別の根拠、不明点、使用モデル、取得できた token 数、
-遅延を JSON で返す。本文、Access credential、OAuth token は標準出力・エラー・
+`bulk-read` は、回答の完全性と再試行可否、ファイル別の根拠、不明点、使用モデル、
+取得できた token 数、遅延を JSON で返す。`complete` が `false` の場合は質問を狭めるか
+1ファイルに減らして1回だけ再試行し、再度失敗したら `rg` と範囲指定readへ切り替える。
+本文、Access credential、OAuth token は標準出力・エラー・
 永続ログへ出力しない。`login` はブラウザ認証を開始するが、`cloudflared` が標準出力へ
 表示する Access token は破棄する。token をチャットや issue へ貼り付けない。
 

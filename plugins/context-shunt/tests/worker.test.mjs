@@ -42,6 +42,8 @@ test("returns a bounded structured summary and disables gateway logging and cach
   const body = await response.json();
 
   assert.equal(response.status, 200);
+  assert.equal(body.complete, true);
+  assert.equal(body.retryable, false);
   assert.equal(body.answer.evidence[0].path, "src/example.js");
   assert.deepEqual(body.usage, { inputTokens: 12, outputTokens: 8 });
   assert.equal(Object.hasOwn(call[1], "response_format"), false);
@@ -170,11 +172,11 @@ test("normalizes an OpenAI-compatible chat completion", async () => {
   assert.equal(body.answer.evidence[0].path, "src/example.js");
 });
 
-test("treats source text as escaped data in the model input", async () => {
+test("treats source text as escaped data and marks incomplete model output", async () => {
   let messages;
   const env = configuredEnv(async (_model, input) => {
     messages = input.messages;
-    return { response: "not json" };
+    return { response: '{"summary":"truncated"' };
   });
   const request = new Request("https://worker.example.test/v1/bulk-read", {
     method: "POST",
@@ -189,8 +191,46 @@ test("treats source text as escaped data in the model input", async () => {
   const body = await response.json();
 
   assert.equal(response.status, 200);
+  assert.equal(body.complete, false);
+  assert.equal(body.retryable, true);
   assert.match(messages[1].content, /&lt;\/sources&gt;/);
   assert.match(body.answer.unknowns[0], /not structured JSON/);
+});
+
+test("enforces the response limits advertised to the model", async () => {
+  const longText = "x".repeat(1_000);
+  const env = configuredEnv(async () => ({
+    response: JSON.stringify({
+      summary: longText,
+      evidence: Array.from({ length: 6 }, () => ({
+        path: "src/example.js",
+        location: longText,
+        reason: longText,
+        excerpt: longText,
+      })),
+      unknowns: Array.from({ length: 6 }, () => longText),
+    }),
+  }));
+  const request = new Request("https://worker.example.test/v1/bulk-read", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      question: "Summarize the file.",
+      files: [{ path: "src/example.js", content: "export const value = 1;" }],
+    }),
+  });
+
+  const response = await handleRequest(request, env);
+  const body = await response.json();
+
+  assert.equal(body.complete, true);
+  assert.equal(body.answer.summary.length, 800);
+  assert.equal(body.answer.evidence.length, 4);
+  assert.equal(body.answer.evidence[0].location.length, 160);
+  assert.equal(body.answer.evidence[0].reason.length, 160);
+  assert.equal(body.answer.evidence[0].excerpt.length, 160);
+  assert.equal(body.answer.unknowns.length, 4);
+  assert.equal(body.answer.unknowns[0].length, 160);
 });
 
 test("rejects invalid requests and exposes a read-only health check", async () => {
