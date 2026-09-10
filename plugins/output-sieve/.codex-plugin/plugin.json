@@ -1,0 +1,31 @@
+{
+  "name": "output-sieve",
+  "version": "0.1.0",
+  "description": "Run approved project checks while returning bounded diagnostic summaries.",
+  "author": {
+    "name": "YMD7"
+  },
+  "repository": "https://github.com/YMD7/agent-plugins",
+  "license": "MIT",
+  "keywords": [
+    "build",
+    "lint",
+    "test",
+    "token-efficiency"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Output Sieve",
+    "shortDescription": "Return bounded summaries from approved project checks.",
+    "longDescription": "Runs project-approved build, lint, and test commands without adding their full raw output to the agent context.",
+    "developerName": "YMD7",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Use Output Sieve to run this project's checks with bounded output.",
+      "Explain which Output Sieve profile should be used for this validation."
+    ]
+  }
+}

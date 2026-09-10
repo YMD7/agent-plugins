@@ -1,0 +1,15 @@
+{
+  "logDirectory": ".tmp/output-sieve",
+  "maxHighlights": 8,
+  "profiles": {
+    "build": {
+      "command": ["pnpm", "build"]
+    },
+    "lint": {
+      "command": ["pnpm", "lint"]
+    },
+    "test": {
+      "command": ["pnpm", "test"]
+    }
+  }
+}
