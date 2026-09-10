@@ -1,0 +1,11 @@
+{
+  "name": "output-sieve",
+  "version": "0.1.0",
+  "description": "Run approved project checks while returning bounded diagnostic summaries.",
+  "author": {
+    "name": "YMD7"
+  },
+  "repository": "https://github.com/YMD7/agent-plugins",
+  "license": "MIT",
+  "skills": "./skills/"
+}
