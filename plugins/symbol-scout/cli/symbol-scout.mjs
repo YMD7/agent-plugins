@@ -553,6 +553,32 @@ function boundedResponse(base, items, totalCount, config) {
   return response;
 }
 
+function boundedLocationResponse(base, locations, totalCount, config) {
+  const response = { ...base, totalCount, returnedCount: 0, truncated: false, items: [] };
+  for (const location of locations) {
+    if (response.returnedCount >= config.maxItems) break;
+    let group = response.items.find((item) => item.file === location.file);
+    if (!group) {
+      group = { file: location.file, ranges: [] };
+      response.items.push(group);
+    }
+    group.ranges.push([location.start, location.end]);
+    response.returnedCount += 1;
+    response.truncated = response.returnedCount < locations.length;
+    if (Buffer.byteLength(JSON.stringify(response)) > config.maxOutputBytes) {
+      group.ranges.pop();
+      response.returnedCount -= 1;
+      if (group.ranges.length === 0) response.items.pop();
+      response.truncated = true;
+      break;
+    }
+  }
+  if (Buffer.byteLength(JSON.stringify(response)) > config.maxOutputBytes) {
+    throw new CliError("Response metadata exceeded maxOutputBytes.");
+  }
+  return response;
+}
+
 function parsePosition(line, column) {
   if (!/^\d+$/.test(line) || !/^\d+$/.test(column)) {
     throw new CliError("line and column must be positive integers.");
@@ -640,19 +666,17 @@ async function executeQuery(invocation, cwd = process.cwd()) {
     }
 
     const durationMs = Number((process.hrtime.bigint() - startedAt) / 1_000_000n);
-    return boundedResponse(
-      {
-        action: invocation.action,
-        server: serverName,
-        file: source.relative,
-        languageRoot: relativeInside(projectRoot, languageRoot, "language root", { allowRoot: true }) || ".",
-        durationMs,
-        omittedExternal,
-      },
-      items,
-      totalCount,
-      config,
-    );
+    const base = {
+      action: invocation.action,
+      server: serverName,
+      file: source.relative,
+      languageRoot: relativeInside(projectRoot, languageRoot, "language root", { allowRoot: true }) || ".",
+      durationMs,
+      omittedExternal,
+    };
+    return invocation.action === "definition" || invocation.action === "references"
+      ? boundedLocationResponse(base, items, totalCount, config)
+      : boundedResponse(base, items, totalCount, config);
   } catch (error) {
     if (error instanceof CliError) throw error;
     if (error instanceof RpcError) {
@@ -682,6 +706,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
 export {
   CliError,
   LspClient,
+  boundedLocationResponse,
   boundedResponse,
   executeQuery,
   findLanguageRoot,

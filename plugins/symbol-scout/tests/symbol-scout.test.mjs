@@ -128,6 +128,7 @@ test("references retries content-modified and omits external locations", async (
   assert.equal(response.returnedCount, 5);
   assert.equal(response.truncated, true);
   assert.ok(response.items.every((item) => item.file === "src/main.ts"));
+  assert.equal(response.items[0].ranges.length, 5);
 });
 
 test("definition normalizes one-based project locations", async (t) => {
@@ -138,7 +139,7 @@ test("definition normalizes one-based project locations", async (t) => {
   const response = JSON.parse(result.stdout);
   assert.equal(response.totalCount, 2);
   assert.equal(response.omittedExternal, 1);
-  assert.deepEqual(response.items[0].start, [1, 2]);
+  assert.deepEqual(response.items[0].ranges[0][0], [1, 2]);
 });
 
 test("rejects untracked and dirty configuration", async (t) => {
