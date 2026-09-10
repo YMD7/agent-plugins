@@ -20,6 +20,12 @@
       "description": "Bounded output for approved project checks",
       "source": "./plugins/output-sieve",
       "category": "development"
+    },
+    {
+      "name": "symbol-scout",
+      "description": "Bounded local LSP symbol navigation",
+      "source": "./plugins/symbol-scout",
+      "category": "development"
     }
   ]
 }

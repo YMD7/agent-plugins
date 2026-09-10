@@ -10,6 +10,7 @@ Claude Code / Codex 向けプラグインのモノレポ。
 | [workflow-graph](./plugins/workflow-graph/) | Deterministic Workflow Graph Core for Claude Code / Codex |
 | [context-shunt](./plugins/context-shunt/) | Project-local large-source summary PoC for Claude Code / Codex |
 | [output-sieve](./plugins/output-sieve/) | Bounded output for approved project checks |
+| [symbol-scout](./plugins/symbol-scout/) | Bounded local LSP symbol navigation |
 
 `workflow-graph` 0.4.0は、Project Profile契約に加えて、blocked Nodeの
 明示的な解決・再開履歴と、関連Runの最小metadataを検証する。executor、
@@ -27,12 +28,14 @@ codex plugin marketplace add "$PROJECT_ROOT/.agents/plugins"
 codex plugin install sdd@agent-plugins
 codex plugin install workflow-graph@agent-plugins
 codex plugin install output-sieve@agent-plugins
+codex plugin install symbol-scout@agent-plugins
 ```
 
 SDDでは`spec` / `init` / `spec-review` / `create-worktree` /
 `cleanup-worktree` / `fix-review` / `plan-task` skillを使う。
 Workflow Graphでは`core` skillを使う。
 Output Sieveでは`output-sieve` skillを使う。
+Symbol Scoutでは`symbol-scout` skillを使う。
 
 `context-shunt` は検証中の project-local PoC であり、Marketplace には登録しない。
 導入手順は [plugin README](./plugins/context-shunt/README.md) を参照する。
@@ -43,6 +46,7 @@ Output Sieveでは`output-sieve` skillを使う。
 claude --plugin-dir ./plugins/sdd
 claude --plugin-dir ./plugins/workflow-graph
 claude --plugin-dir ./plugins/output-sieve
+claude --plugin-dir ./plugins/symbol-scout
 ```
 
 ### Claude Codeプロジェクトに導入する（永続）
@@ -97,4 +101,11 @@ Workflow Graph Coreのテスト:
 python3 -m unittest discover \
   -s plugins/workflow-graph/tests \
   -p 'test_*.py'
+```
+
+Output SieveとSymbol Scoutのテスト:
+
+```bash
+npm --prefix plugins/output-sieve test
+npm --prefix plugins/symbol-scout test
 ```

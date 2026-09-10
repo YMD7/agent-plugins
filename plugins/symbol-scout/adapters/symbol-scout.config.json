@@ -1,0 +1,51 @@
+{
+  "maxItems": 50,
+  "maxOutputBytes": 16384,
+  "requestTimeoutMs": 120000,
+  "servers": {
+    "typescript": {
+      "extensions": [".ts", ".tsx"],
+      "languageIds": {
+        ".ts": "typescript",
+        ".tsx": "typescriptreact"
+      },
+      "command": ["typescript-language-server", "--stdio"],
+      "rootMarkers": ["tsconfig.json"],
+      "readyDelayMs": 0,
+      "contentModifiedRetries": 0
+    },
+    "rust": {
+      "extensions": [".rs"],
+      "languageIds": {
+        ".rs": "rust"
+      },
+      "command": ["rust-analyzer"],
+      "rootMarkers": ["Cargo.toml"],
+      "readyDelayMs": 10000,
+      "contentModifiedRetries": 2,
+      "initializationOptions": {
+        "cargo": {
+          "buildScripts": {
+            "enable": false
+          }
+        },
+        "procMacro": {
+          "enable": false
+        },
+        "checkOnSave": false
+      }
+    },
+    "swift": {
+      "extensions": [".swift"],
+      "languageIds": {
+        ".swift": "swift"
+      },
+      "command": ["sourcekit-lsp"],
+      "rootMarkers": ["Package.swift"],
+      "readyDelayMs": 0,
+      "contentModifiedRetries": 0,
+      "scratchDirectory": ".tmp/symbol-scout/sourcekit-lsp",
+      "scratchArgument": "--scratch-path"
+    }
+  }
+}

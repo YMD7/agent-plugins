@@ -1,0 +1,10 @@
+{
+  "name": "symbol-scout",
+  "version": "0.1.0",
+  "description": "Locate symbols and references with bounded local LSP queries.",
+  "author": {
+    "name": "YMD7"
+  },
+  "repository": "https://github.com/YMD7/agent-plugins",
+  "skills": "./skills/"
+}

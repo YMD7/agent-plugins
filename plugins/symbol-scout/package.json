@@ -1,0 +1,12 @@
+{
+  "name": "@ymd7/symbol-scout",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "symbol-scout": "./cli/symbol-scout.mjs"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

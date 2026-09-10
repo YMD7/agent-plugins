@@ -1,0 +1,30 @@
+{
+  "name": "symbol-scout",
+  "version": "0.1.0",
+  "description": "Locate symbols and references with bounded local LSP queries.",
+  "author": {
+    "name": "YMD7"
+  },
+  "repository": "https://github.com/YMD7/agent-plugins",
+  "keywords": [
+    "lsp",
+    "navigation",
+    "symbols",
+    "token-efficiency"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Symbol Scout",
+    "shortDescription": "Return bounded symbol locations from local language servers.",
+    "longDescription": "Uses project-approved local language servers to locate symbols, definitions, and references without reading entire source files into agent context.",
+    "developerName": "YMD7",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Use Symbol Scout to locate the relevant symbol before reading source.",
+      "Find this symbol's project-local references with bounded output."
+    ]
+  }
+}
